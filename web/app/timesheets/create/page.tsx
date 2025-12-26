@@ -53,10 +53,10 @@ export default function AddTimesheet() {
       }
 
       const timesheetData = {
-        userID: formData.workerID,
+        workerID: formData.workerID, // FIXED: Backend expects workerID not userID
         jobID: formData.jobID,
-        clockIn: formData.clockIn ? `${formData.date}T${formData.clockIn}:00.000Z` : undefined,
-        clockOut: formData.clockOut ? `${formData.date}T${formData.clockOut}:00.000Z` : undefined,
+        clockIn: formData.clockIn ? `${formData.date}T${formData.clockIn}:00` : undefined,
+        clockOut: formData.clockOut ? `${formData.date}T${formData.clockOut}:00` : undefined,
         hours: parseFloat(formData.hours) || undefined,
         notes: formData.notes || undefined
       };

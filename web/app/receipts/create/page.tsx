@@ -84,43 +84,42 @@ export default function CreateReceipt() {
   };
 
   const processImageWithAI = async (imageData: string) => {
-    const aiService = AIService.shared;
-    
-    // Check if AI is available
-    if (!aiService.isAvailable()) {
-      return;
-    }
-
-    // Check automation mode
-    const mode = aiService.getAutomationMode();
-    if (mode === 'manual') {
-      return;
-    }
-
     setIsProcessingAI(true);
     
     try {
-      const extracted = await aiService.extractReceiptData(imageData);
+      // First, upload the image to get a URL
+      if (!imageFile) return;
       
-      // Calculate confidence
-      const confidence = aiService.calculateConfidence(extracted);
-      setAiConfidence(confidence);
+      const imageURL = await APIService.uploadFile(imageFile, 'receipt');
       
-      // Auto-fill form fields
-      if (extracted.vendor) {
-        setFormData(prev => ({ ...prev, vendor: extracted.vendor }));
+      // Call backend OCR endpoint
+      const ocrResult = await APIService.processReceiptOCR(imageURL);
+      
+      if (ocrResult.success && ocrResult.data) {
+        // Calculate confidence
+        const confidence = ocrResult.data.confidence || 0.85;
+        setAiConfidence(confidence);
+        
+        // Auto-fill form fields from OCR data
+        if (ocrResult.data.vendor) {
+          setFormData(prev => ({ ...prev, vendor: ocrResult.data.vendor }));
+        }
+        if (ocrResult.data.amount && ocrResult.data.amount > 0) {
+          setFormData(prev => ({ ...prev, amount: ocrResult.data.amount.toString() }));
+        }
+        if (ocrResult.data.date) {
+          setFormData(prev => ({ ...prev, date: ocrResult.data.date }));
+        }
+        if (ocrResult.data.category) {
+          setFormData(prev => ({ ...prev, category: ocrResult.data.category }));
+        }
+        
+        toast.success('Receipt scanned successfully!');
       }
-      if (extracted.amount !== null && extracted.amount !== undefined) {
-        setFormData(prev => ({ ...prev, amount: extracted.amount!.toString() }));
-      }
-      if (extracted.date) {
-        setFormData(prev => ({ ...prev, date: extracted.date }));
-      }
-      if (extracted.category) {
-        setFormData(prev => ({ ...prev, category: extracted.category || 'materials' }));
-      }
-    } catch (error) {
+    } catch (error: any) {
       // Fail gracefully - user can still enter data manually
+      console.warn('OCR processing failed:', error);
+      toast.error('Could not scan receipt automatically. Please enter details manually.');
     } finally {
       setIsProcessingAI(false);
     }

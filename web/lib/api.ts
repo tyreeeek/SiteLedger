@@ -148,6 +148,10 @@ class APIService {
     return this.request('DELETE', `/receipts/${id}`);
   }
 
+  async processReceiptOCR(imageUrl: string): Promise<any> {
+    return this.request('POST', '/receipts/ocr', { imageUrl });
+  }
+
   // MARK: - Timesheets API
 
   async fetchTimesheets(): Promise<any[]> {

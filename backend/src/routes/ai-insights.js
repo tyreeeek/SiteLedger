@@ -16,24 +16,24 @@ router.post('/generate', authenticate, requirePermission('canSeeAIInsights'), as
         // Fetch user's jobs
         const jobsResult = await pool.query(
             'SELECT * FROM jobs WHERE owner_id = $1 ORDER BY created_at DESC',
-            [req.user.userId]
+            [req.user.id]
         );
         
         // Fetch all receipts
         const receiptsResult = await pool.query(
             'SELECT * FROM receipts WHERE owner_id = $1',
-            [req.user.userId]
+            [req.user.id]
         );
         
         // Fetch all timesheets
         const timesheetsResult = await pool.query(
             'SELECT * FROM timesheets WHERE owner_id = $1',
-            [req.user.userId]
+            [req.user.id]
         );
         
         // Generate insights using AI
         const insights = await AIInsightsService.generateInsights(
-            req.user.userId,
+            req.user.id,
             jobsResult.rows,
             receiptsResult.rows,
             timesheetsResult.rows
@@ -54,7 +54,7 @@ router.post('/generate/:jobId', authenticate, requirePermission('canSeeAIInsight
         // Fetch job
         const jobResult = await pool.query(
             'SELECT * FROM jobs WHERE id = $1 AND owner_id = $2',
-            [jobId, req.user.userId]
+            [jobId, req.user.id]
         );
         
         if (jobResult.rows.length === 0) {

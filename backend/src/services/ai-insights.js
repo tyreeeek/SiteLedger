@@ -1,10 +1,16 @@
 // AI Insights Generation Service
-// Generates business insights using OpenRouter GPT-4o-mini
+// Generates business insights using OpenRouter API with Meta Llama model
 
 const axios = require('axios');
+const logger = require('../config/logger');
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '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';
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const AI_MODEL_NAME = process.env.AI_MODEL_NAME || 'meta-llama/llama-3.3-70b-instruct:free';
+const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || 'https://openrouter.ai/api/v1';
+
+if (!OPENROUTER_API_KEY) {
+  logger.error('OPENROUTER_API_KEY is not set in environment variables');
+}
 
 class AIInsightsService {
   /**
@@ -12,6 +18,10 @@ class AIInsightsService {
    */
   static async generateInsights(userId, jobs, receipts, timesheets) {
     try {
+      if (!OPENROUTER_API_KEY) {
+        throw new Error('OpenRouter API key is not configured');
+      }
+
       // Calculate key metrics
       const totalJobs = jobs.length;
       const activeJobs = jobs.filter(j => j.status === 'active').length;
@@ -75,9 +85,9 @@ Provide 5-7 specific, actionable business insights in JSON format:
 
       // Call OpenRouter API
       const response = await axios.post(
-        OPENROUTER_API_URL,
+        `${OPENAI_BASE_URL}/chat/completions`,
         {
-          model: 'openai/gpt-4o-mini',
+          model: AI_MODEL_NAME,
           messages: [
             {
               role: 'system',
@@ -135,8 +145,8 @@ Provide 5-7 specific, actionable business insights in JSON format:
       };
       
     } catch (error) {
-      console.error('Error generating AI insights:', error.message);
-      throw new Error(`Failed to generate insights: ${error.message}`);
+      logger.error('Error generating AI insights:', { error: error.message, stack: error.stack });
+      throw new Error(`Failed to generate insights: ${error.response?.data?.error?.message || error.message}`);
     }
   }
   
@@ -187,9 +197,9 @@ Provide 3-5 specific insights about this job in JSON format:
 }`;
 
       const response = await axios.post(
-        OPENROUTER_API_URL,
+        `${OPENAI_BASE_URL}/chat/completions`,
         {
-          model: 'openai/gpt-4o-mini',
+          model: AI_MODEL_NAME,
           messages: [
             { role: 'system', content: 'You are a construction project analyst. Provide insights in JSON format.' },
             { role: 'user', content: prompt }
@@ -200,7 +210,9 @@ Provide 3-5 specific insights about this job in JSON format:
         {
           headers: {
             'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://siteledger.ai',
+            'X-Title': 'SiteLedger AI Insights'
           },
           timeout: 30000
         }
@@ -217,10 +229,9 @@ Provide 3-5 specific insights about this job in JSON format:
         ...insights,
         generatedAt: new Date().toISOString()
       };
-      
     } catch (error) {
-      console.error('Error generating job insights:', error.message);
-      throw new Error(`Failed to generate job insights: ${error.message}`);
+      logger.error('Error generating job insights:', { error: error.message, jobId: job?.id });
+      throw new Error(`Failed to generate job insights: ${error.response?.data?.error?.message || error.message}`);
     }
   }
 }
