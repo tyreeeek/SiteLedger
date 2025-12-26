@@ -93,16 +93,16 @@ export default function AIAutomation() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-6 h-6 text-gray-900 dark:text-white" />
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">AI Automation</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">AI Automation</h1>
         </div>
 
         {/* AI Automation Level */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4">AI Automation Level</h2>
           
           <div className="space-y-3">
@@ -125,7 +125,7 @@ export default function AIAutomation() {
                 <Hand className="w-6 h-6 text-gray-700" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-gray-900">Manual</p>
+                <p className="font-semibold text-gray-900 dark:text-white">Manual</p>
                 <p className="text-sm text-gray-600">AI only suggests, never changes data</p>
               </div>
               {automationLevel === 'manual' && (
@@ -156,7 +156,7 @@ export default function AIAutomation() {
                 <UserCheck className="w-6 h-6 text-blue-700" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-gray-900">Assist</p>
+                <p className="font-semibold text-gray-900 dark:text-white">Assist</p>
                 <p className="text-sm text-gray-600">AI auto-fills but requires approval</p>
               </div>
               {automationLevel === 'assist' && (
@@ -187,7 +187,7 @@ export default function AIAutomation() {
                 <Cpu className="w-6 h-6 text-purple-700" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-gray-900">Auto-Pilot</p>
+                <p className="font-semibold text-gray-900 dark:text-white">Auto-Pilot</p>
                 <p className="text-sm text-gray-600">AI applies changes automatically</p>
               </div>
               {automationLevel === 'auto-pilot' && (
@@ -202,7 +202,7 @@ export default function AIAutomation() {
         </div>
 
         {/* AI Features */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4">AI Features</h2>
           
           <div className="space-y-4">

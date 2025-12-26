@@ -5,7 +5,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
-const logger = require('../config/logger');
+const emailService = require('../utils/emailService');
 
 /**
  * POST /api/support/contact
@@ -25,26 +25,31 @@ router.post('/contact', authenticate, [
   try {
     const { name, email, subject, message } = req.body;
 
-    // Log the support request
-    logger.info('Support request received', {
+    // Send email to support team at siteledger@siteledger.ai
+    const emailSubject = `Support Request: ${subject}`;
+    const emailBody = `
+      <h2>New Support Request</h2>
+      <p><strong>From:</strong> ${name} (${email})</p>
+      <p><strong>User ID:</strong> ${req.user.id}</p>
+      <p><strong>Subject:</strong> ${subject}</p>
+      <p><strong>Message:</strong></p>
+      <p>${message.replace(/\n/g, '<br>')}</p>
+      <hr>
+      <p><small>Submitted at: ${new Date().toISOString()}</small></p>
+    `;
+
+    await emailService.sendEmail(
+      'siteledger@siteledger.ai',
+      emailSubject,
+      emailBody
+    );
+
+    console.log('Support request sent to siteledger@siteledger.ai', {
       userId: req.user.id,
       userEmail: req.user.email,
       subject,
       timestamp: new Date().toISOString()
     });
-
-    // TODO: Send email to support team
-    // This would typically use a service like SendGrid, AWS SES, or Nodemailer
-    // For now, we'll just log it
-    
-    // In production, you would do something like:
-    // await emailService.sendSupportRequest({
-    //   from: email,
-    //   name,
-    //   subject,
-    //   message,
-    //   userId: req.user.id
-    // });
 
     res.json({ 
       message: 'Support request submitted successfully',
@@ -52,7 +57,7 @@ router.post('/contact', authenticate, [
       estimatedResponseTime: '24 hours'
     });
   } catch (error) {
-    logger.error('Error submitting support request:', {
+    console.error('Error submitting support request:', {
       error: error.message,
       userId: req.user?.id
     });

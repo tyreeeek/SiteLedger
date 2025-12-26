@@ -13,12 +13,12 @@ export default function TermsOfService() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-6 h-6 text-gray-900 dark:text-white" />
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Terms of Service</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Terms of Service</h1>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm prose prose-blue max-w-none">

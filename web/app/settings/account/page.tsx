@@ -106,16 +106,16 @@ export default function AccountSettings() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-6 h-6 text-gray-900 dark:text-white" />
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Account Settings</h1>
         </div>
 
         {/* Profile Information */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Profile Information</h2>
           
           {/* Avatar */}
@@ -197,10 +197,10 @@ export default function AccountSettings() {
         </div>
 
         {/* Change Password */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
             <Lock className="w-6 h-6 text-gray-700" />
-            <h2 className="text-xl font-bold text-gray-900">Change Password</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Change Password</h2>
           </div>
           
           <div className="space-y-4">

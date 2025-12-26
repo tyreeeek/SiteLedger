@@ -137,14 +137,14 @@ export default function JobDetails() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/jobs')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
             aria-label="Go back to jobs list"
             title="Back to jobs"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-6 h-6 text-gray-900 dark:text-white" />
           </button>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900">Job Details</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Job Details</h1>
           </div>
           <button
             onClick={() => router.push(`/jobs/${jobId}/edit`)}
@@ -263,7 +263,7 @@ export default function JobDetails() {
         </button>
 
         {/* Assigned Workers Section */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Users className="w-5 h-5" />
@@ -496,12 +496,12 @@ export default function JobDetails() {
                         <Receipt className="w-5 h-5 text-gray-400" />
                         <div>
                           <p className="font-medium text-gray-900">{receipt.vendor || 'Receipt'}</p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             {receipt.date ? new Date(receipt.date).toLocaleDateString() : 'No date'}
                           </p>
                         </div>
                       </div>
-                      <span className="text-lg font-semibold text-gray-900">
+                      <span className="text-lg font-semibold text-gray-900 dark:text-white">
                         ${receipt.amount?.toFixed(2) || '0.00'}
                       </span>
                     </div>
@@ -526,14 +526,14 @@ export default function JobDetails() {
                           <Clock className="w-5 h-5 text-gray-400" />
                           <div>
                             <p className="font-medium text-gray-900">{worker?.name || 'Worker'}</p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               {timesheet.date ? new Date(timesheet.date).toLocaleDateString() : 'No date'}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-gray-900">{timesheet.hours?.toFixed(2) || '0.00'} hrs</p>
-                          <p className="text-sm text-gray-500">
+                          <p className="font-semibold text-gray-900 dark:text-white">{timesheet.hours?.toFixed(2) || '0.00'} hrs</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             ${((timesheet.hours || 0) * (worker?.hourlyRate || 0)).toFixed(2)}
                           </p>
                         </div>
@@ -559,7 +559,7 @@ export default function JobDetails() {
                         <FileText className="w-5 h-5 text-gray-400" />
                         <div>
                           <p className="font-medium text-gray-900">{doc.title || 'Document'}</p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             {doc.fileType && (
                               <span className="capitalize">{doc.fileType}</span>
                             )}

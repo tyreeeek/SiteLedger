@@ -63,7 +63,7 @@ export default function Dashboard() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Verifying authentication...</p>
+          <p className="text-gray-600 dark:text-gray-400">Verifying authentication...</p>
         </div>
       </div>
     );
@@ -105,7 +105,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Loading dashboard...</p>
+            <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -248,7 +248,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions - MOVED TO BOTTOM */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Plus className="w-5 h-5" />
             Quick Actions
@@ -294,12 +294,12 @@ export default function Dashboard() {
         </div>
 
         {/* Active Jobs List */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Active Jobs</h2>
           {activeJobs.length === 0 ? (
             <div className="text-center py-12">
               <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">No active jobs</p>
+              <p className="text-gray-600 dark:text-gray-400">No active jobs</p>
               <a href="/jobs" className="text-blue-600 hover:text-blue-700 text-sm mt-2 inline-block">
                 Create your first job
               </a>
@@ -314,11 +314,11 @@ export default function Dashboard() {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-semibold text-gray-900">{job.jobName}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{job.jobName}</h3>
                       <p className="text-sm text-gray-600">{job.clientName}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">{formatCurrency(job.projectValue)}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{formatCurrency(job.projectValue)}</p>
                       <p className="text-xs text-gray-500">Contract Value</p>
                     </div>
                   </div>

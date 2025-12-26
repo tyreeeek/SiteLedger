@@ -121,7 +121,7 @@ export default function AllWorkersHours() {
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">All Workers Hours</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">All Workers Hours</h1>
           
           {/* Date Range Filter */}
           <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">

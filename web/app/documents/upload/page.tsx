@@ -71,7 +71,8 @@ export default function UploadDocument() {
       formDataUpload.append('file', selectedFile);
       
       const token = localStorage.getItem('api_access_token');
-      const uploadResponse = await fetch('https://api.siteledger.ai/api/upload/document', {
+      const apiBaseURL = process.env.NEXT_PUBLIC_API_URL || 'https://api.siteledger.ai';
+      const uploadResponse = await fetch(`${apiBaseURL}/api/upload/document`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -111,14 +112,14 @@ export default function UploadDocument() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
             aria-label="Go back to documents list"
             title="Go back"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-6 h-6 text-gray-900 dark:text-white" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Upload Document</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Upload Document</h1>
             <p className="text-gray-600 mt-1">Add contracts, invoices, or files</p>
           </div>
         </div>

@@ -179,12 +179,12 @@ export default function FAQ() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-6 h-6 text-gray-900 dark:text-white" />
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Frequently Asked Questions</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Frequently Asked Questions</h1>
         </div>
 
         {/* Category Filter */}
@@ -221,7 +221,7 @@ export default function FAQ() {
                   <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2 block">
                     {faq.category}
                   </span>
-                  <h3 className="text-lg font-semibold text-gray-900">{faq.question}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{faq.question}</h3>
                 </div>
                 {openIndex === index ? (
                   <ChevronUp className="w-6 h-6 text-gray-400 flex-shrink-0 ml-4" />

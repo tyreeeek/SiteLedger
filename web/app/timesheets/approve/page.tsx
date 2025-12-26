@@ -135,7 +135,7 @@ export default function ApproveTimesheets() {
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">Approve Timesheets</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Approve Timesheets</h1>
           {activeTab === 'pending' && filteredTimesheets.length > 0 && (
             <button
               onClick={handleBatchApprove}
@@ -204,7 +204,7 @@ export default function ApproveTimesheets() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">{timesheet.worker_name}</h3>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{timesheet.worker_name}</h3>
                           <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
                             {timesheet.job_name}
                           </span>

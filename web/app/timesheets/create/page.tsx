@@ -93,22 +93,22 @@ export default function AddTimesheet() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
             aria-label="Go back to timesheets list"
             title="Go back"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-6 h-6 text-gray-900 dark:text-white" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Add Timesheet Entry</h1>
-            <p className="text-gray-600 mt-1">Log worker hours for a job</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Add Timesheet Entry</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Log worker hours for a job</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm space-y-6">
           {/* Worker Selection */}
           <div>
-            <label htmlFor="worker-select" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="worker-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Worker <span className="text-red-500">*</span>
             </label>
             <select
@@ -116,7 +116,7 @@ export default function AddTimesheet() {
               required
               value={formData.workerID}
               onChange={(e) => setFormData({ ...formData, workerID: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
               aria-label="Select worker"
             >
               <option value="">Select a worker</option>
@@ -130,7 +130,7 @@ export default function AddTimesheet() {
 
           {/* Job Selection */}
           <div>
-            <label htmlFor="job-select" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="job-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Job <span className="text-red-500">*</span>
             </label>
             <select
@@ -138,7 +138,7 @@ export default function AddTimesheet() {
               required
               value={formData.jobID}
               onChange={(e) => setFormData({ ...formData, jobID: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
               aria-label="Select job"
             >
               <option value="">Select a job</option>
@@ -152,7 +152,7 @@ export default function AddTimesheet() {
 
           {/* Date */}
           <div>
-            <label htmlFor="timesheet-date" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="timesheet-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Date <span className="text-red-500">*</span>
             </label>
             <input
@@ -161,7 +161,7 @@ export default function AddTimesheet() {
               required
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
               aria-label="Timesheet date"
             />
           </div>
@@ -169,7 +169,7 @@ export default function AddTimesheet() {
           {/* Time */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label htmlFor="clock-in" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="clock-in" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Clock In
               </label>
               <input
@@ -178,12 +178,12 @@ export default function AddTimesheet() {
                 value={formData.clockIn}
                 onChange={(e) => setFormData({ ...formData, clockIn: e.target.value })}
                 onBlur={calculateHours}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                 aria-label="Clock in time"
               />
             </div>
             <div>
-              <label htmlFor="clock-out" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="clock-out" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Clock Out
               </label>
               <input
@@ -192,12 +192,12 @@ export default function AddTimesheet() {
                 value={formData.clockOut}
                 onChange={(e) => setFormData({ ...formData, clockOut: e.target.value })}
                 onBlur={calculateHours}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                 aria-label="Clock out time"
               />
             </div>
             <div>
-              <label htmlFor="total-hours" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="total-hours" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Total Hours <span className="text-red-500">*</span>
               </label>
               <input
@@ -208,14 +208,14 @@ export default function AddTimesheet() {
                 value={formData.hours}
                 onChange={(e) => setFormData({ ...formData, hours: e.target.value })}
                 placeholder="8.00"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
               />
             </div>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Notes
             </label>
             <textarea
@@ -223,7 +223,7 @@ export default function AddTimesheet() {
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Additional notes about this timesheet entry..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
             />
           </div>
 
@@ -232,7 +232,7 @@ export default function AddTimesheet() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
               disabled={isLoading}
             >
               Cancel

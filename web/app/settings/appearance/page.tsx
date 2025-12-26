@@ -46,9 +46,22 @@ export default function AppearanceSettings() {
     const saved = localStorage.getItem('appearanceSettings');
     if (saved) {
       const settings = JSON.parse(saved);
-      setAccentColor(settings.accentColor || 'blue');
+      const color = settings.accentColor || 'blue';
+      setAccentColor(color);
+      
+      // Apply accent color to document root
+      applyAccentColor(color);
     }
   }, [router]);
+
+  const applyAccentColor = (color: AccentColor) => {
+    // Remove existing accent color classes
+    document.documentElement.classList.remove('accent-blue', 'accent-green', 'accent-purple', 'accent-orange', 'accent-red', 'accent-pink');
+    // Add new accent color class
+    document.documentElement.classList.add(`accent-${color}`);
+    // Store for persistence
+    document.documentElement.setAttribute('data-accent', color);
+  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -71,9 +84,10 @@ export default function AppearanceSettings() {
         throw new Error('Failed to save theme preference');
       }
 
-      // Save accent color to localStorage (UI only, not stored in backend)
+      // Save accent color to localStorage and apply it
       const settings = { theme, accentColor };
       localStorage.setItem('appearanceSettings', JSON.stringify(settings));
+      applyAccentColor(accentColor);
       
       setMessage('Appearance settings saved successfully! Theme applied.');
     } catch (error) {
@@ -98,12 +112,12 @@ export default function AppearanceSettings() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-6 h-6 text-gray-900 dark:text-white" />
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Appearance</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Appearance</h1>
         </div>
 
         {/* Success/Error Message */}
@@ -116,7 +130,7 @@ export default function AppearanceSettings() {
         )}
 
         {/* Theme Selection */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Theme</h2>
           
           <div className="grid grid-cols-3 gap-4">
@@ -134,7 +148,7 @@ export default function AppearanceSettings() {
               <div className="p-3 bg-yellow-100 rounded-full">
                 <Sun className="w-8 h-8 text-yellow-600" />
               </div>
-              <p className="font-semibold text-gray-900">Light</p>
+              <p className="font-semibold text-gray-900 dark:text-white">Light</p>
             </label>
 
             <label className={`flex flex-col items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition ${
@@ -151,7 +165,7 @@ export default function AppearanceSettings() {
               <div className="p-3 bg-gray-800 rounded-full">
                 <Moon className="w-8 h-8 text-gray-200" />
               </div>
-              <p className="font-semibold text-gray-900">Dark</p>
+              <p className="font-semibold text-gray-900 dark:text-white">Dark</p>
             </label>
 
             <label className={`flex flex-col items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition ${
@@ -168,16 +182,16 @@ export default function AppearanceSettings() {
               <div className="p-3 bg-purple-100 rounded-full">
                 <Monitor className="w-8 h-8 text-purple-600" />
               </div>
-              <p className="font-semibold text-gray-900">System</p>
+              <p className="font-semibold text-gray-900 dark:text-white">System</p>
             </label>
           </div>
         </div>
 
         {/* Accent Color */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
             <Palette className="w-6 h-6 text-gray-700" />
-            <h2 className="text-xl font-bold text-gray-900">Accent Color</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Accent Color</h2>
           </div>
           
           <div className="grid grid-cols-3 gap-4">
@@ -197,14 +211,14 @@ export default function AppearanceSettings() {
                   className="hidden"
                 />
                 <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${option.gradient} shadow-lg`} />
-                <p className="font-semibold text-gray-900">{option.name}</p>
+                <p className="font-semibold text-gray-900 dark:text-white">{option.name}</p>
               </label>
             ))}
           </div>
         </div>
 
         {/* Preview */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Preview</h2>
           
           <div className={`bg-gradient-to-br ${colorOptions.find(c => c.color === accentColor)?.gradient} rounded-xl p-6 text-white`}>

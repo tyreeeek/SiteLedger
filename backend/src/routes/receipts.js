@@ -7,6 +7,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const pool = require('../database/db');
 const { authenticate } = require('../middleware/auth');
+const ocrService = require('../services/ocr-service');
 
 const router = express.Router();
 router.use(authenticate);
@@ -251,6 +252,50 @@ router.delete('/:id', async (req, res) => {
     } catch (error) {
         console.error('Delete receipt error:', error);
         res.status(500).json({ error: 'Failed to delete receipt' });
+    }
+});
+
+/**
+ * POST /api/receipts/ocr
+ * Process receipt image with OCR
+ */
+router.post('/ocr', [
+    body('imageUrl').trim().notEmpty()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { imageUrl } = req.body;
+        const ocrData = await ocrService.processReceipt(imageUrl);
+
+        res.json({
+            success: true,
+            data: {
+                vendor: ocrData.vendor,
+                amount: ocrData.amount,
+                date: ocrData.date,
+                category: ocrData.category,
+                confidence: ocrData.confidence,
+                rawText: ocrData.rawText,
+                note: ocrData.note
+            }
+        });
+    } catch (error) {
+        console.error('OCR processing error:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to process receipt image',
+            data: {
+                vendor: '',
+                amount: 0,
+                date: new Date().toISOString().split('T')[0],
+                category: 'other',
+                confidence: 0
+            }
+        });
     }
 });
 

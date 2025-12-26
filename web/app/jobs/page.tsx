@@ -109,7 +109,7 @@ export default function Jobs() {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Loading jobs...</p>
+            <p className="text-gray-600 dark:text-gray-400">Loading jobs...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -214,8 +214,8 @@ export default function Jobs() {
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900">{job.jobName}</h3>
-                          <p className="text-gray-600">{job.clientName}</p>
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white">{job.jobName}</h3>
+                          <p className="text-gray-600 dark:text-gray-400">{job.clientName}</p>
                         </div>
                         {getStatusBadge(job.status)}
                       </div>
@@ -223,7 +223,7 @@ export default function Jobs() {
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Contract Value</p>
-                          <p className="font-semibold text-gray-900">{formatCurrency(job.projectValue)}</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">{formatCurrency(job.projectValue)}</p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Paid</p>

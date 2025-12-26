@@ -270,7 +270,7 @@ export default function Settings() {
                   <section.icon className={`w-6 h-6 ${section.iconColor}`} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">{section.title}</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">{section.title}</h2>
                   <p className="text-sm text-gray-600 mt-0.5">{section.description}</p>
                 </div>
               </div>

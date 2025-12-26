@@ -21,13 +21,13 @@ export default function Calendar() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-6 h-6 text-gray-900 dark:text-white" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Calendar</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Calendar</h1>
             <p className="text-gray-600 mt-1">Schedule jobs and track deadlines</p>
           </div>
         </div>

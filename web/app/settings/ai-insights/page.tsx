@@ -81,12 +81,12 @@ export default function AIInsights() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-6 h-6 text-gray-900 dark:text-white" />
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">AI Insights</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">AI Insights</h1>
         </div>
 
         {/* Generate Button */}
@@ -114,7 +114,7 @@ export default function AIInsights() {
               Your AI Insights
             </h2>
             {insights.map((insight, index) => (
-              <div key={index} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <div key={index} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-lg font-bold text-gray-900">{insight.title}</h3>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getPriorityColor(insight.priority)}`}>
@@ -143,7 +143,7 @@ export default function AIInsights() {
               <div className="p-6 bg-yellow-100 rounded-full">
                 <Lightbulb className="w-16 h-16 text-yellow-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">No Insights Yet</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">No Insights Yet</h2>
               <p className="text-gray-600 max-w-md">
                 Click "Generate AI Insights" above to get AI-powered recommendations about your business.
                 The AI will analyze your jobs, receipts, and timesheets to provide personalized insights.
@@ -153,7 +153,7 @@ export default function AIInsights() {
         )}
 
         {/* Info Card */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <h3 className="text-lg font-bold text-gray-900 mb-3">What are AI Insights?</h3>
           <ul className="space-y-3 text-gray-700">
             <li className="flex items-start gap-3">

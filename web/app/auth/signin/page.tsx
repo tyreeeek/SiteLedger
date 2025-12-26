@@ -131,7 +131,7 @@ export default function SignIn() {
             <img src="/siteledger-logo-light.png" alt="SiteLedger" className="h-24 w-24 rounded-2xl" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">SiteLedger</h1>
-          <p className="text-gray-600">Sign in to your account</p>
+          <p className="text-gray-600 dark:text-gray-400">Sign in to your account</p>
         </div>
 
         {/* Error Message */}
