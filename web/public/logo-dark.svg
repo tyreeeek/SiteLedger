@@ -1,0 +1,22 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gear/Cog base in dark gray -->
+  <path d="M128 90C120 90 110 95 105 102L85 115C78 120 72 128 72 138V158C72 168 78 176 85 181L105 194C110 199 120 204 128 204C136 204 146 199 151 194L171 181C178 176 184 168 184 158V138C184 128 178 120 171 115L151 102C146 95 136 90 128 90Z" fill="#4B5563"/>
+  
+  <!-- Construction helmet in orange -->
+  <ellipse cx="128" cy="100" rx="45" ry="12" fill="#D97706"/>
+  <path d="M128 48C98 48 74 72 74 102V118H182V102C182 72 158 48 128 48Z" fill="#F59E0B"/>
+  <path d="M80 118C80 118 78 125 78 130H178C178 125 176 118 176 118H80Z" fill="#D97706"/>
+  
+  <!-- Ledger/Document -->
+  <rect x="148" y="85" width="80" height="110" rx="8" fill="white" stroke="#2D3748" stroke-width="6"/>
+  <line x1="162" y1="110" x2="214" y2="110" stroke="#2D3748" stroke-width="5" stroke-linecap="round"/>
+  <line x1="162" y1="130" x2="200" y2="130" stroke="#2D3748" stroke-width="5" stroke-linecap="round"/>
+  <line x1="162" y1="150" x2="214" y2="150" stroke="#2D3748" stroke-width="5" stroke-linecap="round"/>
+  <line x1="162" y1="170" x2="190" y2="170" stroke="#2D3748" stroke-width="5" stroke-linecap="round"/>
+  
+  <!-- Checkmark on document -->
+  <path d="M195 160L202 167L215 150" stroke="#10B981" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Receipt tear edge at bottom -->
+  <path d="M148 195L152 190L156 195L160 190L164 195L168 190L172 195L176 190L180 195L184 190L188 195L192 190L196 195L200 190L204 195L208 190L212 195L216 190L220 195L224 190L228 195" stroke="#2D3748" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

@@ -1,0 +1,52 @@
+🚀 SiteLedger API running on port 3000
+📊 Environment: development
+📊 Health check: http://localhost:3000/health
+(node:12459) NOTE: The AWS SDK for JavaScript (v2) is in maintenance mode.
+ SDK releases are limited to address critical bug fixes and security issues only.
+
+Please migrate your code to use AWS SDK for JavaScript (v3).
+For more information, check the blog post at https://a.co/cUPnyil
+(Use `node --trace-warnings ...` to show where the warning was created)
+✅ Connected to PostgreSQL
+GET /health
+GET /api/receipts
+GET /api/auth/me
+POST /api/auth/apple
+Apple Sign-In attempt: {
+  appleUserID: '000673.f14dd40a567c4f29bdb39b064c1a3750.2121',
+  email: 'hidden',
+  fullName: 'not provided'
+}
+GET /api/jobs
+GET /api/jobs
+GET /api/receipts
+GET /api/timesheets
+GET /api/jobs
+GET /api/timesheets
+GET /api/receipts
+GET /health
+GET /api/jobs
+POST /api/auth/login
+Login error: Error: Illegal arguments: string, object
+    at _async (/Users/zia/Desktop/SiteLedger/backend/node_modules/bcryptjs/dist/bcrypt.js:286:46)
+    at /Users/zia/Desktop/SiteLedger/backend/node_modules/bcryptjs/dist/bcrypt.js:307:17
+    at new Promise (<anonymous>)
+    at bcrypt.compare (/Users/zia/Desktop/SiteLedger/backend/node_modules/bcryptjs/dist/bcrypt.js:306:20)
+    at /Users/zia/Desktop/SiteLedger/backend/src/routes/auth.js:118:44
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+POST /api/auth/login
+Login error: Error: Illegal arguments: string, object
+    at _async (/Users/zia/Desktop/SiteLedger/backend/node_modules/bcryptjs/dist/bcrypt.js:286:46)
+    at /Users/zia/Desktop/SiteLedger/backend/node_modules/bcryptjs/dist/bcrypt.js:307:17
+    at new Promise (<anonymous>)
+    at bcrypt.compare (/Users/zia/Desktop/SiteLedger/backend/node_modules/bcryptjs/dist/bcrypt.js:306:20)
+    at /Users/zia/Desktop/SiteLedger/backend/src/routes/auth.js:118:44
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+POST /api/auth/signup
+POST /api/auth/login
+POST /api/auth/login
+GET /api/jobs
+POST /api/auth/login
+POST /api/jobs
+POST /api/auth/login
+GET /api/auth/me

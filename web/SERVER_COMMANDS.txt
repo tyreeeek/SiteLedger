@@ -1,0 +1,25 @@
+## PASTE THESE COMMANDS INTO YOUR SSH SESSION (you're already connected)
+
+# 1. Backup old deployment and create fresh directory
+cd /var/www && mv siteledger.ai siteledger.ai.old.$(date +%Y%m%d_%H%M%S) && mkdir -p /var/www/siteledger.ai && echo "✅ Backup complete"
+
+# 2. Exit SSH temporarily (type 'exit' and press Enter)
+# Then on your Mac terminal, upload the package:
+#
+# scp /Users/zia/Desktop/SiteLedger/web/complete_deploy.tar.gz root@68.183.25.130:/var/www/siteledger.ai/
+#
+# 3. SSH back in: ssh root@68.183.25.130
+
+# 4. Extract and install (paste this entire block):
+cd /var/www/siteledger.ai && \
+tar -xzf complete_deploy.tar.gz && \
+rm complete_deploy.tar.gz && \
+npm ci --production && \
+sed -i 's/"start": "next start"/"start": "next start -p 3001"/' package.json && \
+pm2 stop siteledger-web || true && \
+pm2 delete siteledger-web || true && \
+pm2 start npm --name siteledger-web -- start && \
+pm2 save && \
+echo "✅ Deployment complete!" && \
+pm2 status && \
+pm2 logs siteledger-web --lines 20

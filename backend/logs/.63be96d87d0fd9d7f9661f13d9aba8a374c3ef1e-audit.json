@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "/Users/zia/Desktop/SiteLedger/backend/logs/.63be96d87d0fd9d7f9661f13d9aba8a374c3ef1e-audit.json",
+    "files": [
+        {
+            "date": 1766698731545,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2025-12-25.log",
+            "hash": "64754658ea6a67b6152452b1cfcffcf987895693b8a7231d4dc312f066a4db3a"
+        }
+    ],
+    "hashType": "sha256"
+}
