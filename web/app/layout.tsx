@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "@/components/providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "react-hot-toast";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -50,6 +51,7 @@ export default function RootLayout({
             }}
           />
         </ThemeProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
