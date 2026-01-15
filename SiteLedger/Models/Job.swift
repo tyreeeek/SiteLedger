@@ -22,8 +22,6 @@ struct Job: Identifiable, Codable {
     
     /// Geofence settings for time tracking
     var geofenceEnabled: Bool?
-    var geofenceLatitude: Double?
-    var geofenceLongitude: Double?
     var geofenceRadius: Double? // meters
     
     /// Project start date
@@ -65,8 +63,6 @@ struct Job: Identifiable, Codable {
         latitude: Double? = nil,
         longitude: Double? = nil,
         geofenceEnabled: Bool? = nil,
-        geofenceLatitude: Double? = nil,
-        geofenceLongitude: Double? = nil,
         geofenceRadius: Double? = nil,
         startDate: Date,
         endDate: Date? = nil,
@@ -85,8 +81,6 @@ struct Job: Identifiable, Codable {
         self.latitude = latitude
         self.longitude = longitude
         self.geofenceEnabled = geofenceEnabled
-        self.geofenceLatitude = geofenceLatitude
-        self.geofenceLongitude = geofenceLongitude
         self.geofenceRadius = geofenceRadius
         self.startDate = startDate
         self.endDate = endDate

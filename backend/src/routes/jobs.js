@@ -121,8 +121,6 @@ router.get('/', async (req, res) => {
             profit: j.profit,
             assignedWorkers: j.assigned_worker_ids || [],
             geofenceEnabled: j.geofence_enabled || false,
-            geofenceLatitude: j.geofence_latitude ? parseFloat(j.geofence_latitude) : null,
-            geofenceLongitude: j.geofence_longitude ? parseFloat(j.geofence_longitude) : null,
             geofenceRadius: j.geofence_radius ? parseFloat(j.geofence_radius) : 100,
             createdAt: j.created_at
         }));
@@ -225,8 +223,8 @@ router.post('/', requireOwner, [
                 owner_id, job_name, client_name, address,
                 latitude, longitude, start_date, end_date,
                 status, notes, project_value, amount_paid,
-                geofence_enabled, geofence_latitude, geofence_longitude, geofence_radius
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                geofence_enabled, geofence_radius
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *
         `, [
             req.user.id,
@@ -240,10 +238,8 @@ router.post('/', requireOwner, [
             status || 'active',
             notes || '',
             projectValue,
-            amountPaid || 0,
+            amountPaid,
             geofenceEnabled || false,
-            geofenceLatitude || null,
-            geofenceLongitude || null,
             geofenceRadius || 100
         ]);
         
@@ -275,8 +271,6 @@ router.post('/', requireOwner, [
             projectValue: parseFloat(job.project_value),
             amountPaid: parseFloat(job.amount_paid),
             geofenceEnabled: job.geofence_enabled || false,
-            geofenceLatitude: job.geofence_latitude ? parseFloat(job.geofence_latitude) : null,
-            geofenceLongitude: job.geofence_longitude ? parseFloat(job.geofence_longitude) : null,
             geofenceRadius: job.geofence_radius ? parseFloat(job.geofence_radius) : 100,
             createdAt: job.created_at
         });
@@ -326,15 +320,13 @@ router.put('/:id', requireOwner, async (req, res) => {
                 project_value = COALESCE($10, project_value),
                 amount_paid = COALESCE($11, amount_paid),
                 geofence_enabled = COALESCE($12, geofence_enabled),
-                geofence_latitude = $13,
-                geofence_longitude = $14,
-                geofence_radius = COALESCE($15, geofence_radius)
-            WHERE id = $16
+                geofence_radius = COALESCE($13, geofence_radius)
+            WHERE id = $14
             RETURNING *
         `, [
             jobName, clientName, address, latitude, longitude,
             startDate, endDate, status, notes, projectValue, amountPaid,
-            geofenceEnabled, geofenceLatitude, geofenceLongitude, geofenceRadius,
+            geofenceEnabled, geofenceRadius,
             req.params.id
         ]);
         
@@ -369,8 +361,6 @@ router.put('/:id', requireOwner, async (req, res) => {
             projectValue: parseFloat(job.project_value),
             amountPaid: parseFloat(job.amount_paid),
             geofenceEnabled: job.geofence_enabled || false,
-            geofenceLatitude: job.geofence_latitude ? parseFloat(job.geofence_latitude) : null,
-            geofenceLongitude: job.geofence_longitude ? parseFloat(job.geofence_longitude) : null,
             geofenceRadius: job.geofence_radius ? parseFloat(job.geofence_radius) : 100,
             createdAt: job.created_at
         });

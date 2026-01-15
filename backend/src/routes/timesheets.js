@@ -234,7 +234,7 @@ router.post('/clock-in', [
         
         const job = jobResult.rows[0];
         
-        // GEOFENCE VALIDATION
+        // GEOFENCE VALIDATION - Uses job address coordinates
         if (job.geofence_enabled) {
             if (!latitude || !longitude) {
                 return res.status(400).json({ 
@@ -243,25 +243,34 @@ router.post('/clock-in', [
                 });
             }
             
-            // Calculate distance using Haversine formula
+            // Check if job has coordinates from address
+            if (!job.latitude || !job.longitude) {
+                return res.status(400).json({ 
+                    error: 'Job location not set. Please add an address to this job.',
+                    geofenceRequired: true
+                });
+            }
+            
+            // Calculate distance using Haversine formula (worker location vs job address)
             const distance = calculateDistance(
                 latitude, 
                 longitude, 
-                job.geofence_latitude, 
-                job.geofence_longitude
+                job.latitude,
+                job.longitude
             );
             
             if (distance > job.geofence_radius) {
                 return res.status(403).json({ 
-                    error: `You must be within ${job.geofence_radius}m of the job site to clock in. You are ${Math.round(distance)}m away.`,
+                    error: `You must be within ${job.geofence_radius}m of ${job.address || 'the job site'} to clock in. You are ${Math.round(distance)}m away.`,
                     geofenceViolation: true,
                     distance: Math.round(distance),
                     requiredRadius: job.geofence_radius,
-                    jobName: job.job_name
+                    jobName: job.job_name,
+                    jobAddress: job.address
                 });
             }
             
-            console.log(`✅ Geofence validated: Worker within ${Math.round(distance)}m of job site (limit: ${job.geofence_radius}m)`);
+            console.log(`✅ Geofence validated: Worker within ${Math.round(distance)}m of ${job.address} (limit: ${job.geofence_radius}m)`);
         }
         
         const result = await pool.query(`

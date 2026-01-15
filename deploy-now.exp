@@ -1,0 +1,28 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+
+spawn ssh root@api.siteledger.ai
+
+expect "password:"
+send "Dk7!vР9#Qm4\$Хe2@Hs8Zt\r"
+
+expect "# "
+send "cd /var/www/siteledger\r"
+
+expect "# "
+send "git pull origin main\r"
+
+expect "# "
+send "npm install --production\r"
+
+expect "# "
+send "pm2 restart siteledger-backend\r"
+
+expect "# "
+send "pm2 save\r"
+
+expect "# "
+send "exit\r"
+
+expect eof

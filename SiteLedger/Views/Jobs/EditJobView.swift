@@ -23,8 +23,6 @@ struct EditJobView: View {
     
     // Geofence fields
     @State private var geofenceEnabled: Bool
-    @State private var geofenceLatitude: String
-    @State private var geofenceLongitude: String
     @State private var geofenceRadius: String
     
     init(job: Job) {
@@ -39,8 +37,6 @@ struct EditJobView: View {
         _notes = State(initialValue: job.notes)
         _status = State(initialValue: job.status)
         _geofenceEnabled = State(initialValue: job.geofenceEnabled ?? false)
-        _geofenceLatitude = State(initialValue: job.geofenceLatitude.map { String($0) } ?? "")
-        _geofenceLongitude = State(initialValue: job.geofenceLongitude.map { String($0) } ?? "")
         _geofenceRadius = State(initialValue: job.geofenceRadius.map { String($0) } ?? "100")
     }
     
@@ -199,7 +195,7 @@ struct EditJobView: View {
                             VStack(spacing: ModernDesign.Spacing.lg) {
                                 ModernSectionHeader(
                                     title: "Geofence Time Tracking",
-                                    subtitle: "Optional - Require workers to be at job site to clock in"
+                                    subtitle: "Optional - Require workers to be at job address to clock in"
                                 )
                                 
                                 VStack(spacing: ModernDesign.Spacing.md) {
@@ -208,7 +204,7 @@ struct EditJobView: View {
                                         HStack(spacing: ModernDesign.Spacing.xs) {
                                             Image(systemName: "location.circle.fill")
                                                 .foregroundColor(ModernDesign.Colors.primary)
-                                            Text("Enable Geofence Validation")
+                                            Text("Require workers at job address")
                                                 .font(ModernDesign.Typography.body)
                                                 .foregroundColor(ModernDesign.Colors.textPrimary)
                                         }
@@ -217,19 +213,23 @@ struct EditJobView: View {
                                     
                                     if geofenceEnabled {
                                         VStack(spacing: ModernDesign.Spacing.md) {
-                                            ModernTextField(
-                                                placeholder: "Latitude (e.g., 37.7749)",
-                                                text: $geofenceLatitude,
-                                                icon: "mappin.circle.fill",
-                                                keyboardType: .decimalPad
-                                            )
-                                            
-                                            ModernTextField(
-                                                placeholder: "Longitude (e.g., -122.4194)",
-                                                text: $geofenceLongitude,
-                                                icon: "mappin.circle.fill",
-                                                keyboardType: .decimalPad
-                                            )
+                                            // Show current address
+                                            HStack(spacing: ModernDesign.Spacing.sm) {
+                                                Image(systemName: "mappin.circle.fill")
+                                                    .foregroundColor(ModernDesign.Colors.info)
+                                                VStack(alignment: .leading, spacing: ModernDesign.Spacing.tiny) {
+                                                    Text("Job Address")
+                                                        .font(ModernDesign.Typography.labelSmall)
+                                                        .foregroundColor(ModernDesign.Colors.textSecondary)
+                                                    Text(address.isEmpty ? "Enter an address above" : address)
+                                                        .font(ModernDesign.Typography.body)
+                                                        .foregroundColor(address.isEmpty ? ModernDesign.Colors.textTertiary : ModernDesign.Colors.textPrimary)
+                                                }
+                                                Spacer()
+                                            }
+                                            .padding(ModernDesign.Spacing.md)
+                                            .background(ModernDesign.Colors.info.opacity(0.1))
+                                            .cornerRadius(ModernDesign.Radius.medium)
                                             
                                             ModernTextField(
                                                 placeholder: "Radius in meters (default: 100)",
@@ -238,7 +238,7 @@ struct EditJobView: View {
                                                 keyboardType: .decimalPad
                                             )
                                             
-                                            Text("Workers must be within this radius to clock in. 100 meters ≈ 328 feet")
+                                            Text("Workers must be within this radius of the job address to clock in. 100 meters ≈ 328 feet")
                                                 .font(ModernDesign.Typography.caption)
                                                 .foregroundColor(ModernDesign.Colors.textSecondary)
                                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -374,22 +374,22 @@ struct EditJobView: View {
         }
         
         // Validate geofence fields if enabled
-        var geofenceLat: Double? = nil
-        var geofenceLng: Double? = nil
         var geofenceRad: Double? = nil
         
         if geofenceEnabled {
-            guard let lat = Double(geofenceLatitude),
-                  let lng = Double(geofenceLongitude),
-                  let rad = Double(geofenceRadius),
-                  rad > 0 else {
+            guard !address.isEmpty else {
                 HapticsManager.shared.error()
-                errorMessage = "Please enter valid geofence coordinates and radius"
+                errorMessage = "Please enter a job address for geofence validation"
                 showError = true
                 return
             }
-            geofenceLat = lat
-            geofenceLng = lng
+            
+            guard let rad = Double(geofenceRadius), rad > 0 else {
+                HapticsManager.shared.error()
+                errorMessage = "Please enter a valid geofence radius"
+                showError = true
+                return
+            }
             geofenceRad = rad
         }
         
@@ -407,8 +407,6 @@ struct EditJobView: View {
         updatedJob.status = status
         updatedJob.notes = notes
         updatedJob.geofenceEnabled = geofenceEnabled ? true : nil
-        updatedJob.geofenceLatitude = geofenceLat
-        updatedJob.geofenceLongitude = geofenceLng
         updatedJob.geofenceRadius = geofenceRad
         
         Task {
