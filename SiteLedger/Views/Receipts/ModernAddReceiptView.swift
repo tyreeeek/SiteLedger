@@ -314,7 +314,7 @@ struct ModernAddReceiptView: View {
                                             VStack(spacing: ModernDesign.Spacing.xs) {
                                                 Image(systemName: cat.icon)
                                                     .font(.system(size: 20))
-                                                Text(cat.rawValue)
+                                                Text(cat.displayName)
                                                     .font(ModernDesign.Typography.captionSmall)
                                             }
                                             .foregroundColor(selectedCategory == cat ? .white : ModernDesign.Colors.primary)
@@ -437,9 +437,7 @@ struct ModernAddReceiptView: View {
                         selectedCategory = .materials
                     case "fuel", "gas/fuel", "gas":
                         selectedCategory = .gasFuel
-                    case "tools":
-                        selectedCategory = .tools
-                    case "equipment":
+                    case "tools", "equipment":
                         selectedCategory = .equipment
                     default:
                         selectedCategory = .other
@@ -459,6 +457,8 @@ struct ModernAddReceiptView: View {
                 await MainActor.run {
                     HapticsManager.shared.error()
                     isProcessingImage = false
+                    errorMessage = "Unable to process receipt image"
+                    showError = true
                 }
             }
         }
@@ -491,13 +491,18 @@ struct ModernAddReceiptView: View {
         
         Task {
             do {
+                print("🔍 Starting receipt creation...")
+                print("📊 Data: amount=\(amountDouble), vendor=\(vendor), category=\(selectedCategory.rawValue)")
+                
                 var imageURL: String?
                 
                 // Upload image if selected
                 if let image = selectedImage {
+                    print("📤 Uploading receipt image...")
                     let receiptID = UUID().uuidString
                     do {
                         imageURL = try await viewModel.uploadReceiptImage(image, receiptID: receiptID)
+                        print("✅ Image uploaded: \(imageURL ?? "nil")")
                     } catch {
                         // Show error but still allow receipt creation
                         print("⚠️ Image upload failed: \(error.localizedDescription)")
@@ -507,6 +512,8 @@ struct ModernAddReceiptView: View {
                         }
                         // Continue - receipt will be saved without image
                     }
+                } else {
+                    print("ℹ️ No image selected, proceeding without image")
                 }
                 
                 // Use user-selected category, or AI suggestion as fallback
@@ -519,6 +526,8 @@ struct ModernAddReceiptView: View {
                 // IMPORTANT: Use job's ownerID, not the current user's ID
                 // This allows workers to submit receipts that appear on the owner's account
                 let receiptOwnerID = jobToUse?.ownerID ?? userID
+                
+                print("📝 Creating receipt with ownerID: \(receiptOwnerID), jobID: \(jobToUse?.id ?? "nil")")
                 
                 let receipt = Receipt(
                     ownerID: receiptOwnerID,
@@ -536,13 +545,17 @@ struct ModernAddReceiptView: View {
                     aiSuggestedCategory: categoryToUse
                 )
                 
+                print("🚀 Calling viewModel.createReceipt...")
                 try await viewModel.createReceipt(receipt)
+                print("✅ Receipt created successfully!")
                 
                 await MainActor.run {
                     HapticsManager.shared.success()
                     dismiss()
                 }
             } catch {
+                print("❌ Receipt creation failed: \(error)")
+                print("❌ Error details: \(error.localizedDescription)")
                 await MainActor.run {
                     HapticsManager.shared.error()
                     errorMessage = error.localizedDescription

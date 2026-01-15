@@ -127,25 +127,8 @@ class JobsViewModel: ObservableObject {
     }
     
     func createJob(_ job: Job) async throws {
-        let dateFormatter = ISO8601DateFormatter()
-        
-        var jobData: [String: Any] = [
-            "ownerID": job.ownerID,
-            "jobName": job.jobName,
-            "clientName": job.clientName,
-            "address": job.address,
-            "startDate": dateFormatter.string(from: job.startDate),
-            "status": job.status.rawValue,
-            "notes": job.notes,
-            "projectValue": job.projectValue,
-            "amountPaid": job.amountPaid
-        ]
-        
-        if let lat = job.latitude { jobData["latitude"] = lat }
-        if let lng = job.longitude { jobData["longitude"] = lng }
-        if let endDate = job.endDate { jobData["endDate"] = dateFormatter.string(from: endDate) }
-        
-        _ = try await apiService.createJob(jobData)
+        // Use APIService.createJob(_ job: Job) directly - it handles date formatting correctly
+        try await apiService.createJob(job)
         
         // Reload jobs list after creating
         if let userID = currentUserID {

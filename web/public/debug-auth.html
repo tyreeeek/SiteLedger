@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Apple Sign-In Debug</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 24px; }
+            pre { background: #f5f5f5; padding: 20px; margin-top: 20px; }
+        </style>
+    </head>
+    <body>
+        <h1>Apple Sign-In Debug Page</h1>
+        <button onclick="checkAuth()">Check Authentication Status</button>
+        <button onclick="clearAuth()">Clear All Auth Data</button>
+        <button onclick="goToDashboard()">Go to Dashboard</button>
+
+        <pre id="output"></pre>
+        <script>
+            function checkAuth() {
+                const token = localStorage.getItem('accessToken');
+                const user = localStorage.getItem('current_user');
+
+                const output = document.getElementById('output');
+                output.textContent = `
+Access Token (accessToken): ${token ? 'EXISTS ✅' : 'MISSING ❌'}
+Token Length: ${token ? token.length : 0} characters
+Token Preview: ${token ? token.substring(0, 50) + '...' : 'N/A'}
+
+Current User (current_user): ${user ? 'EXISTS ✅' : 'MISSING ❌'}
+User Data: ${user || 'N/A'}
+
+Status: ${token && user ? '🎉 AUTHENTICATED! You can go to dashboard.' : '❌ NOT AUTHENTICATED'}
+                `;
+            }
+
+            function clearAuth() {
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('current_user');
+                localStorage.clear();
+                alert('✅ All auth data cleared! Refresh page and try signing in again.');
+                checkAuth();
+            }
+
+            function goToDashboard() {
+                window.location.href = '/dashboard';
+            }
+
+            // Auto-check on page load
+            window.onload = checkAuth;
+        </script>
+    </body>
+</html>

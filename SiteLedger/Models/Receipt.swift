@@ -21,19 +21,28 @@ struct Receipt: Identifiable, Codable {
     var aiSuggestedCategory: String?
     
     // Receipt Categories
+    // IMPORTANT: Raw values MUST match backend database constraint
+    // Backend expects: 'materials', 'fuel', 'equipment', 'subcontractors', 'misc'
     enum ReceiptCategory: String, CaseIterable, Codable {
-        case materials = "Materials"
-        case gasFuel = "Gas/Fuel"
-        case tools = "Tools"
-        case equipment = "Equipment"
-        case other = "Other"
+        case materials = "materials"
+        case gasFuel = "fuel"
+        case equipment = "equipment"
+        case other = "misc"
+        
+        var displayName: String {
+            switch self {
+            case .materials: return "Materials"
+            case .gasFuel: return "Gas/Fuel"
+            case .equipment: return "Tools"
+            case .other: return "Other"
+            }
+        }
         
         var icon: String {
             switch self {
             case .materials: return "hammer.fill"
             case .gasFuel: return "fuelpump.fill"
-            case .tools: return "wrench.and.screwdriver.fill"
-            case .equipment: return "gearshape.2.fill"
+            case .equipment: return "wrench.and.screwdriver.fill"
             case .other: return "doc.text.fill"
             }
         }

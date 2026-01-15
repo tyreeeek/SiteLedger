@@ -310,7 +310,7 @@ struct JobsSection: View {
             )
             
             VStack(spacing: ModernDesign.Spacing.md) {
-                ForEach(Array(jobs.prefix(3))) { job in
+                ForEach(Array(jobs.filter { $0.id != nil }.prefix(3))) { job in
                     NavigationLink(destination: ModernJobDetailView(job: job)) {
                         ModernJobCard(job: job)
                     }
@@ -375,7 +375,7 @@ struct CompletedJobsSection: View {
                 
                 // Show last 2 completed jobs
                 VStack(spacing: ModernDesign.Spacing.sm) {
-                    ForEach(Array(jobs.prefix(2))) { job in
+                    ForEach(Array(jobs.filter { $0.id != nil }.prefix(2))) { job in
                         NavigationLink(destination: ModernJobDetailView(job: job)) {
                             CompletedJobCard(job: job)
                         }

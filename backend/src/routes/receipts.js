@@ -12,6 +12,21 @@ const ocrService = require('../services/ocr-service');
 const router = express.Router();
 router.use(authenticate);
 
+// Helper function to format DATE columns as YYYY-MM-DD strings
+function formatDate(date) {
+    if (!date) return null;
+    // If it's already a string in YYYY-MM-DD format, return it
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return date;
+    }
+    // If it's a Date object or timestamp, format it
+    const d = new Date(date);
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 /**
  * GET /api/receipts
  * Get all receipts for the current user
@@ -34,7 +49,7 @@ router.get('/', async (req, res) => {
             amount: parseFloat(r.amount),
             vendor: r.vendor,
             category: r.category,
-            date: r.receipt_date,
+            date: formatDate(r.receipt_date),
             imageURL: r.image_url,
             notes: r.notes,
             aiProcessed: r.ai_processed,
@@ -48,6 +63,50 @@ router.get('/', async (req, res) => {
     } catch (error) {
         console.error('Get receipts error:', error);
         res.status(500).json({ error: 'Failed to fetch receipts' });
+    }
+});
+
+/**
+ * GET /api/receipts/:id
+ * Get a single receipt by ID
+ */
+router.get('/:id', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT r.*, j.job_name
+            FROM receipts r
+            LEFT JOIN jobs j ON r.job_id = j.id
+            WHERE r.id = $1 AND r.owner_id = $2
+        `, [req.params.id, req.user.id]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Receipt not found' });
+        }
+        
+        const r = result.rows[0];
+        const receipt = {
+            id: r.id,
+            ownerID: r.owner_id,
+            jobID: r.job_id,
+            jobName: r.job_name,
+            amount: parseFloat(r.amount),
+            vendor: r.vendor,
+            category: r.category,
+            date: formatDate(r.receipt_date),
+            imageURL: r.image_url,
+            notes: r.notes,
+            aiProcessed: r.ai_processed,
+            aiConfidence: r.ai_confidence ? parseFloat(r.ai_confidence) : null,
+            aiFlags: r.ai_flags,
+            aiSuggestedCategory: r.ai_suggested_category,
+            createdAt: r.created_at,
+            updatedAt: r.updated_at
+        };
+        
+        res.json(receipt);
+    } catch (error) {
+        console.error('Get receipt by ID error:', error);
+        res.status(500).json({ error: 'Failed to fetch receipt' });
     }
 });
 
@@ -70,7 +129,7 @@ router.get('/job/:jobId', async (req, res) => {
             amount: parseFloat(r.amount),
             vendor: r.vendor,
             category: r.category,
-            date: r.receipt_date,
+            date: formatDate(r.receipt_date),
             imageURL: r.image_url,
             notes: r.notes,
             aiProcessed: r.ai_processed,
@@ -158,7 +217,7 @@ router.post('/', [
             amount: parseFloat(r.amount),
             vendor: r.vendor,
             category: r.category,
-            date: r.receipt_date,
+            date: formatDate(r.receipt_date),
             imageURL: r.image_url,
             notes: r.notes,
             aiProcessed: r.ai_processed,
@@ -218,7 +277,7 @@ router.put('/:id', async (req, res) => {
             amount: parseFloat(r.amount),
             vendor: r.vendor,
             category: r.category,
-            date: r.receipt_date,
+            date: formatDate(r.receipt_date),
             imageURL: r.image_url,
             notes: r.notes,
             aiProcessed: r.ai_processed,
@@ -269,7 +328,9 @@ router.post('/ocr', [
         }
 
         const { imageUrl } = req.body;
+        console.log('🔍 OCR REQUEST RECEIVED:', { imageUrl });
         const ocrData = await ocrService.processReceipt(imageUrl);
+        console.log('✅ OCR COMPLETED:', { vendor: ocrData.vendor, amount: ocrData.amount });
 
         res.json({
             success: true,

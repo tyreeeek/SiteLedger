@@ -19,6 +19,7 @@ export default function ClockInOut() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [elapsedTime, setElapsedTime] = useState('00:00:00');
   const [isLoading, setIsLoading] = useState(true);
+  const [todayStats, setTodayStats] = useState({ sessions: 0, hours: 0, earned: 0 });
 
   useEffect(() => {
     const user = AuthService.getCurrentUser();
@@ -76,11 +77,32 @@ export default function ClockInOut() {
         APIService.fetchJobs()
       ]);
       
-      // Find active timesheet (has clockIn but no clockOut)
+      // Find active timesheet (status='working' means clocked in)
+      const currentUserId = AuthService.getCurrentUser()?.id;
       const active = timesheetsData.find((ts: any) => 
-        ts.userID === AuthService.getCurrentUser()?.id && ts.clockIn && !ts.clockOut
+        ts.workerID === currentUserId && ts.status === 'working'
       );
+      console.log('Active timesheet found:', active);
       setActiveTimesheet(active);
+      
+      // Calculate today's stats
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayTimesheets = timesheetsData.filter((ts: any) => {
+        const clockInDate = new Date(ts.clockIn);
+        clockInDate.setHours(0, 0, 0, 0);
+        return ts.workerID === currentUserId && clockInDate.getTime() === today.getTime();
+      });
+      
+      const sessions = todayTimesheets.length;
+      const hours = todayTimesheets.reduce((sum: number, ts: any) => {
+        // Use effectiveHours (calculated field) or hours field
+        return sum + (ts.effectiveHours || ts.hours || 0);
+      }, 0);
+      const hourlyRate = AuthService.getCurrentUser()?.hourlyRate || 0;
+      const earned = hours * hourlyRate;
+      
+      setTodayStats({ sessions, hours: parseFloat(hours.toFixed(1)), earned: parseFloat(earned.toFixed(2)) });
       
       // Filter active jobs
       const activeJobs = jobsData.filter((j: any) => j.status === 'active');
@@ -98,47 +120,68 @@ export default function ClockInOut() {
 
   const clockInMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedJob) throw new Error('Please select a job');
+      if (!selectedJob) {
+        throw new Error('Please select a job');
+      }
       
-      const timesheet = {
-        userID: currentUser.id,
-        jobID: selectedJob,
-        clockIn: new Date().toISOString(),
-        clockOut: null,
-        hours: null,
-        latitude: location?.lat || null,
-        longitude: location?.lng || null,
-        status: 'pending',
-        createdAt: new Date().toISOString()
+      // Use the clock-in endpoint with correct parameters
+      const clockInData: any = {
+        jobID: String(selectedJob), // Ensure it's a string
       };
       
-      return APIService.createTimesheet(timesheet);
+      // Only include location data if available
+      if (location?.lat !== undefined && location?.lng !== undefined) {
+        clockInData.latitude = location.lat;
+        clockInData.longitude = location.lng;
+      }
+      
+      console.log('Clock in attempt:', clockInData);
+      
+      const response = await APIService.clockIn(clockInData);
+      console.log('Clock in response:', response);
+      return response;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Clock in successful:', data);
       queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       loadData();
     },
+    onError: (error: any) => {
+      console.error('Clock in error:', error);
+      console.error('Error response:', error.response?.data);
+      const errorMessage = error.response?.data?.error || 
+                          error.response?.data?.errors?.[0]?.msg ||
+                          error.message || 
+                          'Failed to clock in. Please try again.';
+      alert(errorMessage);
+    }
   });
 
   const clockOutMutation = useMutation({
     mutationFn: async () => {
       if (!activeTimesheet) throw new Error('No active timesheet');
       
-      const clockIn = new Date(activeTimesheet.clockIn);
-      const clockOut = new Date();
-      const hours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-      
-      return APIService.updateTimesheet(activeTimesheet.id, {
-        ...activeTimesheet,
-        clockOut: clockOut.toISOString(),
-        hours: parseFloat(hours.toFixed(2))
-      });
+      console.log('Clock out attempt:', activeTimesheet.id);
+      const response = await APIService.clockOut(activeTimesheet.id);
+      console.log('Clock out response:', response);
+      return response;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Clock out successful:', data);
       queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       setActiveTimesheet(null);
       setElapsedTime('00:00:00');
+      // Reload data to show updated hours
+      loadData();
     },
+    onError: (error: any) => {
+      console.error('Clock out error:', error);
+      console.error('Error response:', error.response?.data);
+      const errorMessage = error.response?.data?.error || 
+                          error.message || 
+                          'Failed to clock out. Please try again.';
+      alert(errorMessage);
+    }
   });
 
   const handleClockIn = () => {
@@ -300,19 +343,19 @@ export default function ClockInOut() {
 
         {/* Quick Stats */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Summary</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Today's Summary</h3>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">0</p>
-              <p className="text-sm text-gray-600">Sessions</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{todayStats.sessions}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Sessions</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">0.0</p>
-              <p className="text-sm text-gray-600">Hours</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{todayStats.hours}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Hours</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">$0</p>
-              <p className="text-sm text-gray-600">Earned</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">${todayStats.earned}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Earned</p>
             </div>
           </div>
         </div>

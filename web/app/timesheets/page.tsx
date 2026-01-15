@@ -12,11 +12,14 @@ export default function Timesheets() {
   const router = useRouter();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
       router.push('/auth/signin');
     } else {
+      const currentUser = AuthService.getCurrentUser();
+      setUser(currentUser);
       setIsAuthChecked(true);
     }
   }, [router]);
@@ -27,16 +30,17 @@ export default function Timesheets() {
     enabled: isAuthChecked,
   });
 
+  // Only fetch workers and jobs if user is an owner
   const { data: workers = [] } = useQuery({
     queryKey: ['workers'],
     queryFn: () => APIService.fetchWorkers(),
-    enabled: isAuthChecked,
+    enabled: isAuthChecked && user?.role === 'owner',
   });
 
   const { data: jobs = [] } = useQuery({
     queryKey: ['jobs'],
     queryFn: () => APIService.fetchJobs(),
-    enabled: isAuthChecked,
+    enabled: isAuthChecked && user?.role === 'owner',
   });
 
   if (!isAuthChecked) {
@@ -48,16 +52,29 @@ export default function Timesheets() {
   }
 
   const filteredTimesheets = timesheets.filter((ts: any) => {
+    if (!searchQuery) return true;
+    
+    // For workers, search by job name in timesheet or search query
+    if (user?.role === 'worker') {
+      return ts.jobName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             ts.workerName?.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    
+    // For owners, search by worker name or job name
     const worker = workers.find((w: any) => w.id === ts.workerID);
     const job = jobs.find((j: any) => j.id === ts.jobID);
     return worker?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           job?.jobName?.toLowerCase().includes(searchQuery.toLowerCase());
+           job?.jobName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           ts.workerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           ts.jobName?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const totalHours = timesheets.reduce((sum: number, ts: any) => sum + (ts.hours || 0), 0);
   const totalCost = timesheets.reduce((sum: number, ts: any) => {
     const worker = workers.find((w: any) => w.id === ts.workerID);
-    return sum + ((ts.hours || 0) * (worker?.hourlyRate || 0));
+    // Use hourlyRate from timesheet if workers array is empty (for worker users)
+    const rate = worker?.hourlyRate || ts.hourlyRate || 0;
+    return sum + ((ts.hours || 0) * rate);
   }, 0);
 
   const formatCurrency = (value: number) => {
@@ -165,7 +182,11 @@ export default function Timesheets() {
                   {filteredTimesheets.map((ts: any) => {
                     const worker = workers.find((w: any) => w.id === ts.workerID);
                     const job = jobs.find((j: any) => j.id === ts.jobID);
-                    const cost = (ts.hours || 0) * (worker?.hourlyRate || 0);
+                    // Use workerName from timesheet if workers array is empty (for worker users)
+                    const workerName = worker?.name || ts.workerName || 'Unknown';
+                    const workerRate = worker?.hourlyRate || ts.hourlyRate || 0;
+                    const jobName = job?.jobName || ts.jobName || 'No Job';
+                    const cost = (ts.hours || 0) * workerRate;
                     
                     return (
                       <tr key={ts.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -175,12 +196,12 @@ export default function Timesheets() {
                               <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">{worker?.name || 'Unknown'}</div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">{workerName}</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-white">{job?.jobName || 'No Job'}</div>
+                          <div className="text-sm text-gray-900 dark:text-white">{jobName}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500 dark:text-gray-400">

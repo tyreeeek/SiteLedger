@@ -87,41 +87,35 @@ router.post('/generate/:jobId', authenticate, requirePermission('canSeeAIInsight
     }
 });
 
-// Get all insights
+// Get all insights (no job relationship - global insights only)
 router.get('/', authenticate, async (req, res) => {
     try {
-        const { jobId, type } = req.query;
+        const { type } = req.query;
         
         let query = `
             SELECT 
                 ai.id,
-                ai.job_id as "jobId",
                 ai.job_name as "jobName",
                 ai.type,
-                ai.title,
+                ai.insight,
                 ai.summary,
                 ai.details,
                 ai.confidence,
                 ai.recommendations,
+                ai.actionable,
                 ai.created_at as "createdAt"
             FROM ai_insights ai
-            JOIN jobs j ON ai.job_id = j.id
-            WHERE j.owner_id = $1
+            WHERE 1=1
         `;
         
-        const params = [req.user.userId];
-        
-        if (jobId) {
-            params.push(jobId);
-            query += ` AND ai.job_id = $${params.length}`;
-        }
+        const params = [];
         
         if (type) {
             params.push(type);
             query += ` AND ai.type = $${params.length}`;
         }
         
-        query += ' ORDER BY ai.created_at DESC';
+        query += ' ORDER BY ai.created_at DESC LIMIT 50';
         
         const result = await pool.query(query, params);
         res.json(result.rows);
@@ -139,19 +133,18 @@ router.get('/:id', authenticate, async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 ai.id,
-                ai.job_id as "jobId",
                 ai.job_name as "jobName",
                 ai.type,
-                ai.title,
+                ai.insight,
                 ai.summary,
                 ai.details,
                 ai.confidence,
                 ai.recommendations,
+                ai.actionable,
                 ai.created_at as "createdAt"
             FROM ai_insights ai
-            JOIN jobs j ON ai.job_id = j.id
-            WHERE ai.id = $1 AND j.owner_id = $2
-        `, [id, req.user.userId]);
+            WHERE ai.id = $1
+        `, [id]);
         
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Insight not found' });
@@ -164,44 +157,32 @@ router.get('/:id', authenticate, async (req, res) => {
     }
 });
 
-// Create new insight
+// Create new insight (no job relationship - global insights)
 router.post('/', authenticate, async (req, res) => {
     try {
-        const { jobId, jobName, type, title, summary, details, confidence, recommendations } = req.body;
+        const { jobName, type, insight, summary, details, confidence, recommendations, actionable } = req.body;
         
-        if (!jobId || !type || !title || !summary) {
+        if (!type || !insight || !summary) {
             return res.status(400).json({ 
-                error: 'Missing required fields: jobId, type, title, summary' 
+                error: 'Missing required fields: type, insight, summary' 
             });
         }
         
-        // Verify job belongs to user
-        const jobCheck = await pool.query(
-            'SELECT id, job_name FROM jobs WHERE id = $1 AND owner_id = $2',
-            [jobId, req.user.userId]
-        );
-        
-        if (jobCheck.rows.length === 0) {
-            return res.status(404).json({ error: 'Job not found' });
-        }
-        
-        const actualJobName = jobName || jobCheck.rows[0].job_name;
-        
         const result = await pool.query(`
-            INSERT INTO ai_insights (job_id, job_name, type, title, summary, details, confidence, recommendations)
+            INSERT INTO ai_insights (job_name, type, insight, summary, details, confidence, recommendations, actionable)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING 
                 id,
-                job_id as "jobId",
                 job_name as "jobName",
                 type,
-                title,
+                insight,
                 summary,
                 details,
                 confidence,
                 recommendations,
+                actionable,
                 created_at as "createdAt"
-        `, [jobId, actualJobName, type, title, summary, details, confidence, recommendations]);
+        `, [jobName, type, insight, summary, details, confidence, recommendations, actionable || false]);
         
         res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -215,18 +196,11 @@ router.delete('/:id', authenticate, async (req, res) => {
     try {
         const { id } = req.params;
         
-        // Verify insight belongs to user's job
-        const insightCheck = await pool.query(`
-            SELECT ai.id FROM ai_insights ai
-            JOIN jobs j ON ai.job_id = j.id
-            WHERE ai.id = $1 AND j.owner_id = $2
-        `, [id, req.user.userId]);
+        const result = await pool.query('DELETE FROM ai_insights WHERE id = $1 RETURNING id', [id]);
         
-        if (insightCheck.rows.length === 0) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Insight not found' });
         }
-        
-        await pool.query('DELETE FROM ai_insights WHERE id = $1', [id]);
         
         res.json({ message: 'Insight deleted successfully' });
     } catch (error) {

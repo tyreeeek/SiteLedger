@@ -9,6 +9,46 @@
             "date": 1766698731545,
             "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2025-12-25.log",
             "hash": "64754658ea6a67b6152452b1cfcffcf987895693b8a7231d4dc312f066a4db3a"
+        },
+        {
+            "date": 1767147422427,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2025-12-30.log",
+            "hash": "0c42b1759203e1578e4f38a632191813d0eb5ab19a8cd59a1b1f06c7829859b1"
+        },
+        {
+            "date": 1767157279228,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2025-12-31.log",
+            "hash": "eb58b4890209f35e2261f5dd76fe9677cb37e069154e019324f0a90ed3cd9ee6"
+        },
+        {
+            "date": 1767290266081,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2026-01-01.log",
+            "hash": "103f7c3d0d301aded179a0a20ec349ea024527ccbce901a476bbd70bdcd70a7b"
+        },
+        {
+            "date": 1767558605860,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2026-01-04.log",
+            "hash": "72aeb56f2b578d03d0b505625a408449fc466c45d22574c0596db3481110b4d7"
+        },
+        {
+            "date": 1767826413032,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2026-01-07.log",
+            "hash": "aa91a6ce134b43cdc677f2b68d1d509ec9bdd6b83544024156dc6e1d36a6c0bb"
+        },
+        {
+            "date": 1768013340556,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2026-01-09.log",
+            "hash": "3259d0c3620a33057192ef40eb9f21479fc6ebb0c283fd60afc07a7f915d7967"
+        },
+        {
+            "date": 1768444932876,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2026-01-14.log",
+            "hash": "5a51513ac856268cf980ff5405e1c4424104d29aa32bdabe16f275268bca8bb2"
+        },
+        {
+            "date": 1768492680823,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2026-01-15.log",
+            "hash": "dc718a81dd8754e1f99fedd87277ca32b647dbcd04c65423b183aade55d78c12"
         }
     ],
     "hashType": "sha256"

@@ -5,16 +5,14 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard-layout';
 import AuthService from '@/lib/auth';
 import { useTheme } from '@/components/theme-provider';
-import { ArrowLeft, Save, Sun, Moon, Monitor, Palette } from 'lucide-react';
+import { ArrowLeft, Save, Sun, Moon, Monitor } from 'lucide-react';
 
 type Theme = 'light' | 'dark' | 'system';
-type AccentColor = 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'pink';
 
 export default function AppearanceSettings() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [localTheme, setLocalTheme] = useState<Theme>('light');
-  const [accentColor, setAccentColor] = useState<AccentColor>('blue');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -41,27 +39,7 @@ export default function AppearanceSettings() {
       router.push('/auth/signin');
       return;
     }
-
-    // Load accent color from localStorage (UI only)
-    const saved = localStorage.getItem('appearanceSettings');
-    if (saved) {
-      const settings = JSON.parse(saved);
-      const color = settings.accentColor || 'blue';
-      setAccentColor(color);
-      
-      // Apply accent color to document root
-      applyAccentColor(color);
-    }
   }, [router]);
-
-  const applyAccentColor = (color: AccentColor) => {
-    // Remove existing accent color classes
-    document.documentElement.classList.remove('accent-blue', 'accent-green', 'accent-purple', 'accent-orange', 'accent-red', 'accent-pink');
-    // Add new accent color class
-    document.documentElement.classList.add(`accent-${color}`);
-    // Store for persistence
-    document.documentElement.setAttribute('data-accent', color);
-  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -84,10 +62,9 @@ export default function AppearanceSettings() {
         throw new Error('Failed to save theme preference');
       }
 
-      // Save accent color to localStorage and apply it
-      const settings = { theme, accentColor };
+      // Save theme to localStorage
+      const settings = { theme };
       localStorage.setItem('appearanceSettings', JSON.stringify(settings));
-      applyAccentColor(accentColor);
       
       setMessage('Appearance settings saved successfully! Theme applied.');
     } catch (error) {
@@ -96,15 +73,6 @@ export default function AppearanceSettings() {
       setLoading(false);
     }
   };
-
-  const colorOptions: { color: AccentColor; name: string; gradient: string }[] = [
-    { color: 'blue', name: 'Blue', gradient: 'from-blue-500 to-blue-600' },
-    { color: 'green', name: 'Green', gradient: 'from-green-500 to-green-600' },
-    { color: 'purple', name: 'Purple', gradient: 'from-purple-500 to-purple-600' },
-    { color: 'orange', name: 'Orange', gradient: 'from-orange-500 to-orange-600' },
-    { color: 'red', name: 'Red', gradient: 'from-red-500 to-red-600' },
-    { color: 'pink', name: 'Pink', gradient: 'from-pink-500 to-pink-600' }
-  ];
 
   return (
     <DashboardLayout>
@@ -131,11 +99,11 @@ export default function AppearanceSettings() {
 
         {/* Theme Selection */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Theme</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Theme</h2>
           
           <div className="grid grid-cols-3 gap-4">
             <label className={`flex flex-col items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition ${
-              theme === 'light' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              theme === 'light' ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
             }`}>
               <input
                 type="radio"
@@ -152,7 +120,7 @@ export default function AppearanceSettings() {
             </label>
 
             <label className={`flex flex-col items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition ${
-              theme === 'dark' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              theme === 'dark' ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
             }`}>
               <input
                 type="radio"
@@ -169,7 +137,7 @@ export default function AppearanceSettings() {
             </label>
 
             <label className={`flex flex-col items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition ${
-              theme === 'system' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              theme === 'system' ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
             }`}>
               <input
                 type="radio"
@@ -184,49 +152,6 @@ export default function AppearanceSettings() {
               </div>
               <p className="font-semibold text-gray-900 dark:text-white">System</p>
             </label>
-          </div>
-        </div>
-
-        {/* Accent Color */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <Palette className="w-6 h-6 text-gray-700" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Accent Color</h2>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4">
-            {colorOptions.map((option) => (
-              <label
-                key={option.color}
-                className={`flex flex-col items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition ${
-                  accentColor === option.color ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="accentColor"
-                  value={option.color}
-                  checked={accentColor === option.color}
-                  onChange={() => setAccentColor(option.color)}
-                  className="hidden"
-                />
-                <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${option.gradient} shadow-lg`} />
-                <p className="font-semibold text-gray-900 dark:text-white">{option.name}</p>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Preview */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Preview</h2>
-          
-          <div className={`bg-gradient-to-br ${colorOptions.find(c => c.color === accentColor)?.gradient} rounded-xl p-6 text-white`}>
-            <h3 className="text-2xl font-bold mb-2">Sample Card</h3>
-            <p className="mb-4">This is how your accent color will look throughout the app.</p>
-            <button className="px-4 py-2 bg-white text-gray-900 rounded-lg font-medium">
-              Sample Button
-            </button>
           </div>
         </div>
 

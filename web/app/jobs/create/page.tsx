@@ -20,7 +20,11 @@ export default function CreateJob() {
     location: '',
     startDate: '',
     endDate: '',
-    notes: ''
+    notes: '',
+    geofenceEnabled: false,
+    geofenceLatitude: '',
+    geofenceLongitude: '',
+    geofenceRadius: '100'
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,6 +50,10 @@ export default function CreateJob() {
         startDate: formData.startDate || null,
         endDate: formData.endDate || null,
         notes: formData.notes,
+        geofenceEnabled: formData.geofenceEnabled,
+        geofenceLatitude: formData.geofenceLatitude ? parseFloat(formData.geofenceLatitude) : null,
+        geofenceLongitude: formData.geofenceLongitude ? parseFloat(formData.geofenceLongitude) : null,
+        geofenceRadius: parseFloat(formData.geofenceRadius) || 100,
         createdAt: new Date().toISOString()
       };
 
@@ -214,6 +222,76 @@ export default function CreateJob() {
               placeholder="Additional details about the project..."
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
             />
+          </div>
+
+          {/* Geofence Time Tracking */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Geofence Time Tracking</h3>
+            
+            <div className="flex items-center gap-3 mb-4">
+              <input
+                type="checkbox"
+                id="geofence-enabled"
+                checked={formData.geofenceEnabled}
+                onChange={(e) => setFormData({ ...formData, geofenceEnabled: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="geofence-enabled" className="text-sm font-medium text-gray-700">
+                Enable geofence validation (workers must be on-site to clock in)
+              </label>
+            </div>
+
+            {formData.geofenceEnabled && (
+              <div className="space-y-4 pl-8 border-l-2 border-blue-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Latitude <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.000001"
+                      required={formData.geofenceEnabled}
+                      value={formData.geofenceLatitude}
+                      onChange={(e) => setFormData({ ...formData, geofenceLatitude: e.target.value })}
+                      placeholder="e.g., 40.712776"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Longitude <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.000001"
+                      required={formData.geofenceEnabled}
+                      value={formData.geofenceLongitude}
+                      onChange={(e) => setFormData({ ...formData, geofenceLongitude: e.target.value })}
+                      placeholder="e.g., -74.005974"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Geofence Radius (meters)
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    value={formData.geofenceRadius}
+                    onChange={(e) => setFormData({ ...formData, geofenceRadius: e.target.value })}
+                    placeholder="100"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                  />
+                  <p className="text-sm text-gray-500 mt-2">
+                    Workers must be within this distance from the job site to clock in. Default: 100m (~328 feet)
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}

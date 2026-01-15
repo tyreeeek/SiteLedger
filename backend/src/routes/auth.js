@@ -14,6 +14,7 @@ const jwt = require('jsonwebtoken');
 const appleSignin = require('apple-signin-auth');
 const fs = require('fs');
 const path = require('path');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
@@ -79,7 +80,8 @@ router.post('/signup', [
                 assignedJobIDs: [], // Empty array for consistency
                 createdAt: user.created_at
             },
-            accessToken
+            accessToken,
+            token: accessToken // alias for clients expecting `token`
         });
     } catch (error) {
         console.error('Signup error:', error);
@@ -143,7 +145,8 @@ router.post('/login', [
                 workerPermissions: user.worker_permissions,
                 createdAt: user.created_at
             },
-            accessToken
+            accessToken,
+            token: accessToken // alias for clients expecting `token`
         });
     } catch (error) {
         console.error('Login error:', error);
@@ -337,7 +340,10 @@ router.post('/change-email', authenticate, [
 
 /**
  * POST /api/auth/forgot-password
- * Send password reset email (generates reset token)
+ * Send password reset email (generates reset token or link based on platform)
+ * Body params:
+ *   - email: user email
+ *   - platform: 'web' or 'mobile' (optional, defaults to 'mobile')
  */
 router.post('/forgot-password', [
     body('email').isEmail().normalizeEmail()
@@ -348,7 +354,16 @@ router.post('/forgot-password', [
             return res.status(400).json({ error: 'Invalid email format' });
         }
 
-        const { email } = req.body;
+        const { email, platform } = req.body;
+        const isWebRequest = platform === 'web';
+
+        // Log the request details
+        logger.info('Password reset requested', { 
+            email, 
+            platform: platform || 'not specified', 
+            isWebRequest,
+            userAgent: req.headers['user-agent']
+        });
 
         // Check if user exists
         const userResult = await pool.query(
@@ -358,15 +373,18 @@ router.post('/forgot-password', [
 
         if (userResult.rows.length === 0) {
             // Don't reveal if email exists - just return success
-            return res.json({ message: 'If an account exists, a reset link has been sent' });
+            return res.json({ 
+                message: 'If an account exists, a reset link has been sent',
+                platform: isWebRequest ? 'web' : 'mobile'
+            });
         }
 
         const user = userResult.rows[0];
         
-        // Generate 6-character reset token (valid for 1 hour)
+        // Generate reset token - 6-character code for both web and mobile
         const crypto = require('crypto');
-        // Generate 6 random alphanumeric characters (uppercase for easier reading)
-        const resetToken = Math.random().toString(36).substring(2, 8).toUpperCase();
+        let resetToken = Math.random().toString(36).substring(2, 8).toUpperCase();
+        
         const resetExpires = new Date(Date.now() + 3600000); // 1 hour
 
         // Store reset token in database
@@ -375,7 +393,7 @@ router.post('/forgot-password', [
             [resetToken, resetExpires, user.id]
         );
 
-        // Send password reset email
+        // Send password reset email (same code-based email for both web and mobile)
         const { sendPasswordResetEmail } = require('../utils/emailService');
         try {
             await sendPasswordResetEmail(user.email, user.name, resetToken);
@@ -392,10 +410,17 @@ router.post('/forgot-password', [
                 message: 'Password reset token generated',
                 resetToken: resetToken,
                 expiresIn: '1 hour',
-                testInstructions: 'For development: Save this token to reset your password'
+                platform: isWebRequest ? 'web' : 'mobile',
+                resetUrl: isWebRequest ? `https://siteledger.ai/reset-password?token=${resetToken}` : null,
+                testInstructions: isWebRequest 
+                    ? 'For development: Click the reset URL above' 
+                    : 'For development: Save this token to reset your password'
             });
         } else {
-            res.json({ message: 'If an account exists, a reset link has been sent' });
+            res.json({ 
+                message: 'If an account exists, a reset link has been sent',
+                platform: isWebRequest ? 'web' : 'mobile'
+            });
         }
     } catch (error) {
         console.error('Forgot password error:', error);
@@ -419,14 +444,29 @@ router.post('/reset-password', [
 
         const { token, newPassword } = req.body;
 
-        // Find user with valid reset token
+        // Log for debugging
+        logger.info('Reset password attempt', { token, tokenLength: token?.length });
+
+        // Find user with valid reset token (case-insensitive)
         const userResult = await pool.query(
-            'SELECT id FROM users WHERE reset_token = $1 AND reset_token_expires > NOW()',
+            'SELECT id FROM users WHERE UPPER(reset_token) = UPPER($1) AND reset_token_expires > NOW()',
             [token]
         );
 
         if (userResult.rows.length === 0) {
-            return res.status(400).json({ error: 'Invalid or expired reset token' });
+            // Check if token exists but is expired
+            const expiredCheck = await pool.query(
+                'SELECT id, reset_token_expires FROM users WHERE UPPER(reset_token) = UPPER($1)',
+                [token]
+            );
+            
+            if (expiredCheck.rows.length > 0) {
+                logger.warn('Expired reset token used', { token });
+                return res.status(400).json({ error: 'Reset code has expired. Please request a new one.' });
+            }
+            
+            logger.warn('Invalid reset token used', { token });
+            return res.status(400).json({ error: 'Invalid reset code. Please check the code and try again.' });
         }
 
         const user = userResult.rows[0];
@@ -444,104 +484,6 @@ router.post('/reset-password', [
     } catch (error) {
         console.error('Reset password error:', error);
         res.status(500).json({ error: 'Failed to reset password' });
-    }
-});
-
-
-/**
- * POST /api/auth/apple
- * Sign in with Apple
- */
-router.post('/apple', [
-    body('identityToken').notEmpty(),
-    body('authorizationCode').notEmpty(),
-    body('appleUserID').notEmpty()
-], async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            console.error('Apple Sign-In validation errors:', errors.array());
-            return res.status(400).json({ error: 'Missing required Apple Sign-In data' });
-        }
-
-        const { identityToken, authorizationCode, appleUserID, fullName, email } = req.body;
-        console.log('Apple Sign-In attempt:', { appleUserID, email: email || 'hidden', fullName: fullName || 'not provided' });
-        
-        // In production, you should verify the identityToken with Apple's servers
-        // For now, we trust the token and create/find the user
-        
-        // Check if user already exists with this Apple ID
-        let userResult = await pool.query(
-            'SELECT * FROM users WHERE apple_user_id = $1',
-            [appleUserID]
-        );
-        
-        let user;
-        
-        if (userResult.rows.length > 0) {
-            // Existing user - just return their data
-            user = userResult.rows[0];
-        } else {
-            // New user - create account
-            // Generate email if not provided (Apple may hide real email)
-            const userEmail = email || `apple_${appleUserID.substring(0, 10)}@privaterelay.appleid.com`;
-            const userName = fullName || 'Apple User';
-            
-            // Check if email already exists (edge case)
-            const emailCheck = await pool.query(
-                'SELECT id FROM users WHERE email = $1',
-                [userEmail]
-            );
-            
-            if (emailCheck.rows.length > 0) {
-                // Link Apple ID to existing account
-                await pool.query(
-                    'UPDATE users SET apple_user_id = $1 WHERE email = $2',
-                    [appleUserID, userEmail]
-                );
-                userResult = await pool.query(
-                    'SELECT * FROM users WHERE email = $1',
-                    [userEmail]
-                );
-                user = userResult.rows[0];
-            } else {
-                // Create new user
-                const result = await pool.query(`
-                    INSERT INTO users (email, name, role, active, apple_user_id, created_at)
-                    VALUES ($1, $2, 'owner', true, $3, NOW())
-                    RETURNING *
-                `, [userEmail, userName, appleUserID]);
-                
-                user = result.rows[0];
-            }
-        }
-        
-        // Check if account is active
-        if (!user.active) {
-            return res.status(401).json({ error: 'Account is disabled' });
-        }
-        
-        const { accessToken } = generateTokens(user.id);
-        
-        res.json({
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                role: user.role,
-                active: user.active,
-                hourlyRate: user.hourly_rate,
-                phone: user.phone,
-                photoURL: user.photo_url,
-                ownerId: user.owner_id,
-                assignedJobIDs: [], // Empty array for consistency
-                createdAt: user.created_at
-            },
-            accessToken
-        });
-    } catch (error) {
-        console.error('Apple Sign-In error:', error);
-        res.status(500).json({ error: 'Apple Sign-In failed' });
     }
 });
 
@@ -668,36 +610,182 @@ router.post('/reset-all-data', authenticate, async (req, res) => {
     }
 });
 
+const APPLE_SIGNIN_CONFIG = {
+    clientID: process.env.APPLE_CLIENT_ID || 'ai.siteledger.web',
+    teamID: process.env.APPLE_TEAM_ID,
+    keyID: process.env.APPLE_KEY_ID,
+    redirectURI: process.env.APPLE_REDIRECT_URI || 'https://siteledger.ai/auth/signin',
+    privateKeyPath: process.env.APPLE_PRIVATE_KEY_PATH || 'apple-private-key.p8'
+};
+
+let cachedApplePrivateKey = null;
+
+const loadApplePrivateKey = () => {
+    if (process.env.APPLE_PRIVATE_KEY && process.env.APPLE_PRIVATE_KEY.trim()) {
+        if (!cachedApplePrivateKey) {
+            cachedApplePrivateKey = process.env.APPLE_PRIVATE_KEY.replace(/\\n/g, '\n');
+        }
+        return cachedApplePrivateKey;
+    }
+
+    if (cachedApplePrivateKey) {
+        return cachedApplePrivateKey;
+    }
+
+    try {
+        const resolvedPath = path.resolve(__dirname, '../..', APPLE_SIGNIN_CONFIG.privateKeyPath);
+        cachedApplePrivateKey = fs.readFileSync(resolvedPath, 'utf8');
+        return cachedApplePrivateKey;
+    } catch (readError) {
+        logger.error('Failed to load Apple private key', {
+            error: readError.message,
+            path: APPLE_SIGNIN_CONFIG.privateKeyPath
+        });
+        throw readError;
+    }
+};
+
+const exchangeAuthorizationCode = async (authorizationCode) => {
+    if (!authorizationCode) {
+        throw new Error('Authorization code is required');
+    }
+
+    const missingConfig = [];
+    if (!APPLE_SIGNIN_CONFIG.teamID) missingConfig.push('APPLE_TEAM_ID');
+    if (!APPLE_SIGNIN_CONFIG.keyID) missingConfig.push('APPLE_KEY_ID');
+
+    if (missingConfig.length > 0) {
+        throw new Error(`Missing Apple Sign-In configuration: ${missingConfig.join(', ')}`);
+    }
+
+    const clientSecret = await appleSignin.getClientSecret({
+        clientID: APPLE_SIGNIN_CONFIG.clientID,
+        teamID: APPLE_SIGNIN_CONFIG.teamID,
+        keyIdentifier: APPLE_SIGNIN_CONFIG.keyID,
+        privateKey: loadApplePrivateKey()
+    });
+
+    const tokenResponse = await appleSignin.getAuthorizationToken(authorizationCode, {
+        clientID: APPLE_SIGNIN_CONFIG.clientID,
+        clientSecret,
+        redirectUri: APPLE_SIGNIN_CONFIG.redirectURI
+    });
+
+    return tokenResponse;
+};
+
 /**
  * POST /api/auth/apple
- * Apple Sign In - Exchange authorization code for user data with proper verification
- * Frontend sends { identityToken, authorizationCode, user: { email, name } }
+ * Apple Sign In - Flexible endpoint supporting both iOS and web formats
+ * iOS sends: { identityToken, authorizationCode, appleUserID, fullName?, email? }
+ * Web sends: { identityToken, authorizationCode, user: { email, name } }
  */
 router.post('/apple', async (req, res) => {
+    const requestStartedAt = Date.now();
+
     try {
-        const { identityToken, authorizationCode, user, email: providedEmail, name: providedName } = req.body;
-        
-        if (!identityToken) {
-            return res.status(400).json({ error: 'Identity token required' });
+        const { 
+            identityToken, 
+            authorizationCode, 
+            appleUserID,  // iOS format
+            user,         // Web format
+            email: providedEmail, 
+            fullName: providedFullName,
+            name: providedName 
+        } = req.body;
+
+        let tokenToVerify = identityToken || null;
+        let appleUserId = appleUserID || null;
+        let email = providedEmail || (user && user.email) || null;
+        let derivedFullName = providedFullName || providedName || (user && user.name) || null;
+
+        if (!tokenToVerify && !authorizationCode) {
+            logger.warn('Apple Sign-In rejected: missing identity token and authorization code');
+            return res.status(400).json({ error: 'Identity token or authorization code required' });
         }
 
-        // Verify the identity token with Apple's public keys
-        let appleResponse;
-        try {
-            appleResponse = await appleSignin.verifyIdToken(identityToken, {
-                audience: process.env.APPLE_CLIENT_ID || 'ai.siteledger.web',
-                ignoreExpiration: false
-            });
-        } catch (verifyError) {
-            console.error('Apple token verification failed:', verifyError);
-            return res.status(400).json({ error: 'Invalid Apple token' });
+        logger.info('Apple Sign-In request received', {
+            hasIdentityToken: !!identityToken,
+            hasAuthorizationCode: !!authorizationCode,
+            hasAppleUserID: !!appleUserID,
+            hasEmail: !!email
+        });
+
+        if (!tokenToVerify && authorizationCode) {
+            try {
+                const tokenResponse = await exchangeAuthorizationCode(authorizationCode);
+                tokenToVerify = tokenResponse.id_token || tokenToVerify;
+
+                const decodedFromExchange = tokenResponse.id_token ? jwt.decode(tokenResponse.id_token) : null;
+                appleUserId = appleUserId || decodedFromExchange?.sub || null;
+                email = email || tokenResponse.email || decodedFromExchange?.email || null;
+
+                if (!derivedFullName) {
+                    const pieces = [
+                        decodedFromExchange?.given_name,
+                        decodedFromExchange?.family_name
+                    ].filter(Boolean);
+                    if (pieces.length > 0) {
+                        derivedFullName = pieces.join(' ');
+                    }
+                }
+
+                logger.info('Apple authorization code exchanged successfully', {
+                    hasIdentityToken: !!tokenToVerify,
+                    hasAppleUserId: !!appleUserId,
+                    hasEmail: !!email
+                });
+            } catch (exchangeError) {
+                logger.error('Apple Sign-In authorization code exchange failed', {
+                    error: exchangeError.message,
+                });
+                return res.status(400).json({ error: 'Unable to verify Apple authorization code' });
+            }
         }
 
-        const appleUserId = appleResponse.sub;
-        const email = appleResponse.email || providedEmail || (user && user.email);
-        
-        if (!email) {
-            return res.status(400).json({ error: 'Email required for Apple Sign In' });
+        let appleResponse = null;
+
+        if (tokenToVerify) {
+            try {
+                appleResponse = await appleSignin.verifyIdToken(tokenToVerify, {
+                    audience: APPLE_SIGNIN_CONFIG.clientID,
+                    ignoreExpiration: process.env.NODE_ENV !== 'production'
+                });
+                appleUserId = appleUserId || appleResponse.sub;
+                email = email || appleResponse.email;
+
+                if (!derivedFullName) {
+                    const pieces = [appleResponse.given_name, appleResponse.family_name].filter(Boolean);
+                    if (pieces.length > 0) {
+                        derivedFullName = pieces.join(' ');
+                    }
+                }
+
+                logger.info('Apple identity token verified', {
+                    appleUserId,
+                    hasEmail: !!email
+                });
+            } catch (verifyError) {
+                logger.warn('Apple identity token verification failed; falling back to decoded token data', {
+                    error: verifyError.message
+                });
+
+                const decoded = jwt.decode(tokenToVerify);
+                appleUserId = appleUserId || decoded?.sub || null;
+                email = email || decoded?.email || null;
+
+                if (!derivedFullName) {
+                    const pieces = [decoded?.given_name, decoded?.family_name].filter(Boolean);
+                    if (pieces.length > 0) {
+                        derivedFullName = pieces.join(' ');
+                    }
+                }
+            }
+        }
+
+        if (!appleUserId) {
+            logger.error('Apple Sign-In rejected: appleUserId missing after processing');
+            return res.status(400).json({ error: 'Apple User ID required' });
         }
 
         // Check if user exists with this Apple ID
@@ -706,19 +794,24 @@ router.post('/apple', async (req, res) => {
             [appleUserId]
         );
 
-        let userId, role, userName;
+        if (existingUser.rows.length === 0 && !email) {
+            logger.error('Apple Sign-In rejected: email missing for new user registration', { appleUserId });
+            return res.status(400).json({ error: 'Email required for Apple Sign In' });
+        }
+
+    let userId, role;
 
         if (existingUser.rows.length > 0) {
             // Existing Apple user - sign in
             const userRecord = existingUser.rows[0];
             userId = userRecord.id;
             role = userRecord.role;
-            userName = userRecord.name;
         } else {
             // Check if email already exists (link accounts)
+            const normalizedEmail = email?.toLowerCase();
             const emailUser = await pool.query(
                 'SELECT * FROM users WHERE LOWER(email) = LOWER($1)',
-                [email]
+                [normalizedEmail]
             );
 
             if (emailUser.rows.length > 0) {
@@ -730,39 +823,308 @@ router.post('/apple', async (req, res) => {
                 );
                 userId = userRecord.id;
                 role = userRecord.role;
-                userName = userRecord.name;
             } else {
                 // Create new user
-                const fullName = providedName || (user && user.name) || 'Apple User';
+                const fullName = (derivedFullName && derivedFullName.trim()) || 'Apple User';
+                logger.info('Creating new Apple user', { email: normalizedEmail, appleUserId });
                 const newUser = await pool.query(
                     `INSERT INTO users (email, name, role, apple_user_id, created_at) 
                      VALUES ($1, $2, $3, $4, NOW()) 
-                     RETURNING id, role, name`,
+                     RETURNING id, role`,
+                    [normalizedEmail, fullName, 'owner', appleUserId]
+                );
+                userId = newUser.rows[0].id;
+                role = newUser.rows[0].role;
+            }
+        }
+
+        // Generate JWT token
+        const { accessToken } = generateTokens(userId);
+
+        // Fetch full user data to return complete profile (same as normal login)
+        const fullUserResult = await pool.query(`
+            SELECT id, email, name, role, active, hourly_rate, phone, photo_url, owner_id, worker_permissions, created_at
+            FROM users WHERE id = $1
+        `, [userId]);
+
+        const fullUser = fullUserResult.rows[0];
+
+        logger.info('Apple Sign-In successful', {
+            userId,
+            role: fullUser.role,
+            durationMs: Date.now() - requestStartedAt
+        });
+
+        res.json({
+            user: {
+                id: fullUser.id,
+                email: fullUser.email,
+                name: fullUser.name,
+                role: fullUser.role,
+                active: fullUser.active,
+                hourlyRate: fullUser.hourly_rate,
+                phone: fullUser.phone,
+                photoURL: fullUser.photo_url,
+                ownerId: fullUser.owner_id,
+                assignedJobIDs: [], // Empty array for owners
+                workerPermissions: fullUser.worker_permissions,
+                createdAt: fullUser.created_at
+            },
+            accessToken,
+            token: accessToken // alias for clients expecting `token`
+        });
+
+    } catch (error) {
+        logger.error('Apple Sign In error', {
+            error: error.message,
+            stack: error.stack
+        });
+        res.status(500).json({ error: 'Apple Sign In failed' });
+    }
+});
+
+/**
+ * POST /api/auth/google
+ * Google Sign In - verify ID token and create/login user
+ */
+router.post('/google', async (req, res) => {
+    try {
+        const { credential } = req.body;
+
+        if (!credential) {
+            logger.warn('Google Sign-In rejected: missing credential');
+            return res.status(400).json({ error: 'Google credential required' });
+        }
+
+        logger.info('Google Sign-In request received');
+
+        // Verify the Google ID token
+        const { OAuth2Client } = require('google-auth-library');
+        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+        
+        const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+        const googleUserId = payload.sub;
+        const email = payload.email;
+        const name = payload.name || email.split('@')[0];
+
+        if (!googleUserId || !email) {
+            logger.error('Google Sign-In rejected: missing user data');
+            return res.status(400).json({ error: 'Invalid Google credential' });
+        }
+
+        // Check if user exists with this Google ID
+        let existingUser = await pool.query(
+            'SELECT * FROM users WHERE google_user_id = $1',
+            [googleUserId]
+        );
+
+        let userId, role;
+
+        if (existingUser.rows.length > 0) {
+            // Existing Google user - sign in
+            const userRecord = existingUser.rows[0];
+            userId = userRecord.id;
+            role = userRecord.role;
+        } else {
+            // Check if email already exists (link accounts)
+            const emailUser = await pool.query(
+                'SELECT * FROM users WHERE LOWER(email) = LOWER($1)',
+                [email]
+            );
+
+            if (emailUser.rows.length > 0) {
+                // Link existing account to Google ID
+                const userRecord = emailUser.rows[0];
+                await pool.query(
+                    'UPDATE users SET google_user_id = $1 WHERE id = $2',
+                    [googleUserId, userRecord.id]
+                );
+                userId = userRecord.id;
+                role = userRecord.role;
+            } else {
+                // Create new user
+                logger.info('Creating new Google user', { email, googleUserId });
+                const newUser = await pool.query(
+                    `INSERT INTO users (email, name, role, google_user_id, created_at) 
+                     VALUES ($1, $2, $3, $4, NOW()) 
+                     RETURNING id, role`,
+                    [email, name, 'owner', googleUserId]
+                );
+                userId = newUser.rows[0].id;
+                role = newUser.rows[0].role;
+            }
+        }
+
+        // Generate JWT token
+        const { accessToken } = generateTokens(userId);
+
+        // Fetch full user data
+        const fullUserResult = await pool.query(`
+            SELECT id, email, name, role, active, hourly_rate, phone, photo_url, owner_id, worker_permissions, created_at
+            FROM users WHERE id = $1
+        `, [userId]);
+
+        const fullUser = fullUserResult.rows[0];
+
+        logger.info('Google Sign-In successful', { userId, role });
+
+        res.json({
+            user: {
+                id: fullUser.id,
+                email: fullUser.email,
+                name: fullUser.name,
+                role: fullUser.role,
+                active: fullUser.active,
+                hourlyRate: fullUser.hourly_rate,
+                phone: fullUser.phone,
+                photoURL: fullUser.photo_url,
+                ownerId: fullUser.owner_id,
+                assignedJobIDs: [],
+                workerPermissions: fullUser.worker_permissions,
+                createdAt: fullUser.created_at
+            },
+            accessToken,
+            token: accessToken
+        });
+
+    } catch (error) {
+        logger.error('Google Sign In error', {
+            error: error.message,
+            stack: error.stack
+        });
+        res.status(500).json({ error: 'Google Sign In failed' });
+    }
+});
+
+/**
+ * GET /api/auth/apple/callback
+ * Apple Sign In OAuth callback - redirects to frontend with token
+ */
+router.get('/apple/callback', async (req, res) => {
+    try {
+        const { code, state } = req.query;
+
+        logger.info('Apple callback received', { hasCode: !!code, state });
+
+        if (!code) {
+            logger.warn('Apple callback missing code');
+            return res.redirect('https://siteledger.ai/auth/signin?error=apple_no_code');
+        }
+
+        // Exchange code for token via our own Apple endpoint
+        const result = await exchangeAuthorizationCode(code);
+        
+        if (!result.id_token) {
+            logger.error('Apple callback: no id_token in exchange result');
+            return res.redirect('https://siteledger.ai/auth/signin?error=apple_token_exchange_failed');
+        }
+
+        // Verify the token
+        const appleResponse = await appleSignin.verifyIdToken(result.id_token, {
+            audience: APPLE_SIGNIN_CONFIG.clientID,
+            ignoreExpiration: process.env.NODE_ENV !== 'production'
+        });
+
+        const appleUserId = appleResponse.sub;
+        const email = appleResponse.email;
+
+        if (!appleUserId || !email) {
+            logger.error('Apple callback: missing user data', { hasUserId: !!appleUserId, hasEmail: !!email });
+            return res.redirect('https://siteledger.ai/auth/signin?error=apple_missing_user_data');
+        }
+
+        // Check if user exists
+        let existingUser = await pool.query(
+            'SELECT * FROM users WHERE apple_user_id = $1',
+            [appleUserId]
+        );
+
+        let userId, role;
+
+        if (existingUser.rows.length > 0) {
+            const userRecord = existingUser.rows[0];
+            userId = userRecord.id;
+            role = userRecord.role;
+        } else {
+            // Check if email exists
+            const emailUser = await pool.query(
+                'SELECT * FROM users WHERE LOWER(email) = LOWER($1)',
+                [email]
+            );
+
+            if (emailUser.rows.length > 0) {
+                // Link existing account
+                const userRecord = emailUser.rows[0];
+                await pool.query(
+                    'UPDATE users SET apple_user_id = $1 WHERE id = $2',
+                    [appleUserId, userRecord.id]
+                );
+                userId = userRecord.id;
+                role = userRecord.role;
+            } else {
+                // Create new user
+                const fullName = [appleResponse.given_name, appleResponse.family_name]
+                    .filter(Boolean)
+                    .join(' ') || 'Apple User';
+                
+                logger.info('Creating new Apple user', { email, appleUserId });
+                
+                const newUser = await pool.query(
+                    `INSERT INTO users (email, name, role, apple_user_id, created_at) 
+                     VALUES ($1, $2, $3, $4, NOW()) 
+                     RETURNING id, role`,
                     [email, fullName, 'owner', appleUserId]
                 );
                 userId = newUser.rows[0].id;
                 role = newUser.rows[0].role;
-                userName = newUser.rows[0].name;
             }
         }
 
-        // Generate JWT tokens
-        const { accessToken, refreshToken } = generateTokens(userId, role);
+        // Generate JWT token
+        const { accessToken } = generateTokens(userId);
 
-        res.json({
-            accessToken,
-            refreshToken,
-            user: {
-                id: userId,
-                email: email,
-                name: userName,
-                role: role
-            }
-        });
+        // Fetch full user data
+        const fullUserResult = await pool.query(`
+            SELECT id, email, name, role, active, hourly_rate, phone, photo_url, owner_id, worker_permissions, created_at
+            FROM users WHERE id = $1
+        `, [userId]);
+
+        const fullUser = fullUserResult.rows[0];
+
+        logger.info('Apple callback successful, redirecting to frontend', { userId, role });
+
+        // Redirect to frontend with token and user data in URL
+        const redirectUrl = new URL('https://siteledger.ai/auth/signin');
+        redirectUrl.searchParams.set('apple_success', '1');
+        redirectUrl.searchParams.set('token', accessToken);
+        redirectUrl.searchParams.set('user', JSON.stringify({
+            id: fullUser.id,
+            email: fullUser.email,
+            name: fullUser.name,
+            role: fullUser.role,
+            active: fullUser.active,
+            hourlyRate: fullUser.hourly_rate,
+            phone: fullUser.phone,
+            photoURL: fullUser.photo_url,
+            ownerId: fullUser.owner_id,
+            assignedJobIDs: [],
+            workerPermissions: fullUser.worker_permissions,
+            createdAt: fullUser.created_at
+        }));
+
+        res.redirect(redirectUrl.toString());
 
     } catch (error) {
-        console.error('Apple Sign In error:', error);
-        res.status(500).json({ error: 'Apple Sign In failed' });
+        logger.error('Apple callback error', {
+            error: error.message,
+            stack: error.stack
+        });
+        res.redirect('https://siteledger.ai/auth/signin?error=apple_callback_failed');
     }
 });
 

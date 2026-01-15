@@ -545,9 +545,8 @@ class AuthService: ObservableObject {
     private func mapAPIUserToUser(_ apiUser: APIService.APIUser) -> User {
         let role: UserRole = apiUser.role == "worker" ? .worker : .owner
         
-        // Parse date from ISO8601 string
-        let dateFormatter = ISO8601DateFormatter()
-        let createdAt = dateFormatter.date(from: apiUser.createdAt) ?? Date()
+        // Parse date from API string (handles multiple formats)
+        let createdAt = DateFormatters.parseAPIDate(apiUser.createdAt) ?? Date()
         
         return User(
             id: apiUser.id,

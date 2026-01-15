@@ -20,6 +20,12 @@ struct ModernCreateJobView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     
+    // Geofence fields
+    @State private var geofenceEnabled = false
+    @State private var geofenceLatitude = ""
+    @State private var geofenceLongitude = ""
+    @State private var geofenceRadius = "100"
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -149,6 +155,60 @@ struct ModernCreateJobView: View {
                                                 HapticsManager.shared.selection()
                                                 status = .onHold
                                             }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Geofence Time Tracking
+                        ModernCard(shadow: true) {
+                            VStack(spacing: ModernDesign.Spacing.lg) {
+                                ModernSectionHeader(
+                                    title: "Geofence Time Tracking",
+                                    subtitle: "Optional - Require workers to be at job site to clock in"
+                                )
+                                
+                                VStack(spacing: ModernDesign.Spacing.md) {
+                                    // Enable toggle
+                                    Toggle(isOn: $geofenceEnabled) {
+                                        HStack(spacing: ModernDesign.Spacing.xs) {
+                                            Image(systemName: "location.circle.fill")
+                                                .foregroundColor(ModernDesign.Colors.primary)
+                                            Text("Enable Geofence Validation")
+                                                .font(ModernDesign.Typography.body)
+                                                .foregroundColor(ModernDesign.Colors.textPrimary)
+                                        }
+                                    }
+                                    .tint(ModernDesign.Colors.primary)
+                                    
+                                    if geofenceEnabled {
+                                        VStack(spacing: ModernDesign.Spacing.md) {
+                                            ModernTextField(
+                                                placeholder: "Latitude (e.g., 37.7749)",
+                                                text: $geofenceLatitude,
+                                                icon: "mappin.circle.fill",
+                                                keyboardType: .decimalPad
+                                            )
+                                            
+                                            ModernTextField(
+                                                placeholder: "Longitude (e.g., -122.4194)",
+                                                text: $geofenceLongitude,
+                                                icon: "mappin.circle.fill",
+                                                keyboardType: .decimalPad
+                                            )
+                                            
+                                            ModernTextField(
+                                                placeholder: "Radius in meters (default: 100)",
+                                                text: $geofenceRadius,
+                                                icon: "circle.dashed",
+                                                keyboardType: .decimalPad
+                                            )
+                                            
+                                            Text("Workers must be within this radius to clock in. 100 meters ≈ 328 feet")
+                                                .font(ModernDesign.Typography.caption)
+                                                .foregroundColor(ModernDesign.Colors.textSecondary)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
                                         }
                                     }
                                 }
@@ -292,6 +352,26 @@ struct ModernCreateJobView: View {
             return
         }
         
+        // Validate geofence fields if enabled
+        var geofenceLat: Double? = nil
+        var geofenceLng: Double? = nil
+        var geofenceRad: Double? = nil
+        
+        if geofenceEnabled {
+            guard let lat = Double(geofenceLatitude),
+                  let lng = Double(geofenceLongitude),
+                  let rad = Double(geofenceRadius),
+                  rad > 0 else {
+                HapticsManager.shared.error()
+                errorMessage = "Please enter valid geofence coordinates and radius"
+                showError = true
+                return
+            }
+            geofenceLat = lat
+            geofenceLng = lng
+            geofenceRad = rad
+        }
+        
         guard let ownerID = authService.currentUser?.id else {
             HapticsManager.shared.error()
             errorMessage = "User not logged in"
@@ -304,6 +384,10 @@ struct ModernCreateJobView: View {
             jobName: jobName,
             clientName: clientName,
             address: address,
+            geofenceEnabled: geofenceEnabled ? true : nil,
+            geofenceLatitude: geofenceLat,
+            geofenceLongitude: geofenceLng,
+            geofenceRadius: geofenceRad,
             startDate: startDate,
             endDate: endDate,
             status: status,

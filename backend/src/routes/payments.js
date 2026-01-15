@@ -11,6 +11,22 @@ const router = express.Router();
 router.use(authenticate);
 
 /**
+ * Helper function to format Date objects as YYYY-MM-DD strings
+ * Uses UTC methods to prevent timezone conversion issues
+ */
+function formatDate(date) {
+    if (!date) return null;
+    if (typeof date === 'string') return date;
+    
+    const d = new Date(date);
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
+/**
  * GET /api/payments
  * Get all worker payments for the current owner
  */
@@ -28,9 +44,9 @@ router.get('/', requireOwner, async (req, res) => {
             workerID: p.worker_id,
             workerName: p.worker_name,
             amount: parseFloat(p.amount),
-            paymentDate: p.payment_date,
-            periodStart: p.period_start,
-            periodEnd: p.period_end,
+            paymentDate: formatDate(p.payment_date),
+            periodStart: formatDate(p.period_start),
+            periodEnd: formatDate(p.period_end),
             hoursWorked: parseFloat(p.hours_worked),
             hourlyRate: parseFloat(p.hourly_rate),
             calculatedEarnings: parseFloat(p.calculated_earnings),
@@ -64,9 +80,9 @@ router.get('/worker/:workerId', requireOwner, async (req, res) => {
             workerID: p.worker_id,
             workerName: p.worker_name,
             amount: parseFloat(p.amount),
-            paymentDate: p.payment_date,
-            periodStart: p.period_start,
-            periodEnd: p.period_end,
+            paymentDate: formatDate(p.payment_date),
+            periodStart: formatDate(p.period_start),
+            periodEnd: formatDate(p.period_end),
             hoursWorked: parseFloat(p.hours_worked),
             hourlyRate: parseFloat(p.hourly_rate),
             calculatedEarnings: parseFloat(p.calculated_earnings),
@@ -151,9 +167,9 @@ router.post('/', requireOwner, [
             workerID: p.worker_id,
             workerName: p.worker_name,
             amount: parseFloat(p.amount),
-            paymentDate: p.payment_date,
-            periodStart: p.period_start,
-            periodEnd: p.period_end,
+            paymentDate: formatDate(p.payment_date),
+            periodStart: formatDate(p.period_start),
+            periodEnd: formatDate(p.period_end),
             hoursWorked: parseFloat(p.hours_worked),
             hourlyRate: parseFloat(p.hourly_rate),
             calculatedEarnings: parseFloat(p.calculated_earnings),

@@ -9,6 +9,7 @@ class APIService {
   private baseURL: string = 'https://api.siteledger.ai/api';
   private accessToken: string | null = null;
   private axiosInstance: AxiosInstance;
+  private static readonly TOKEN_KEY = 'accessToken';
 
   private constructor() {
     this.axiosInstance = axios.create({
@@ -45,21 +46,27 @@ class APIService {
 
   setAccessToken(token: string): void {
     this.accessToken = token;
+    this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     if (typeof window !== 'undefined') {
-      localStorage.setItem('api_access_token', token);
+      localStorage.setItem(APIService.TOKEN_KEY, token);
     }
   }
 
   loadStoredToken(): void {
     if (typeof window !== 'undefined') {
-      this.accessToken = localStorage.getItem('api_access_token');
+      const token = localStorage.getItem(APIService.TOKEN_KEY);
+      if (token) {
+        this.accessToken = token;
+        this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      }
     }
   }
 
   clearToken(): void {
     this.accessToken = null;
+    delete this.axiosInstance.defaults.headers.common['Authorization'];
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('api_access_token');
+      localStorage.removeItem(APIService.TOKEN_KEY);
     }
   }
 
@@ -96,9 +103,10 @@ class APIService {
       if (error.response?.status === 401) {
         // Token expired or invalid
         this.clearToken();
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/signin';
-        }
+        // Disable auto-redirect to prevent loops; let the UI handle the error state
+        // if (typeof window !== 'undefined') {
+        //   window.location.href = '/auth/signin';
+        // }
       }
       throw error;
     }
@@ -174,6 +182,14 @@ class APIService {
     return this.request('DELETE', `/timesheets/${id}`);
   }
 
+  async clockIn(data: { jobID: string; latitude?: number | null; longitude?: number | null }): Promise<any> {
+    return this.request('POST', '/timesheets/clock-in', data);
+  }
+
+  async clockOut(timesheetId: string): Promise<any> {
+    return this.request('POST', '/timesheets/clock-out', { timesheetId });
+  }
+
   // MARK: - Documents API
 
   async fetchDocuments(): Promise<any[]> {
@@ -214,6 +230,20 @@ class APIService {
     return this.request('DELETE', `/workers/${id}`);
   }
 
+  // MARK: - Worker Payments API
+
+  async fetchPayments(): Promise<any[]> {
+    return this.request('GET', '/worker-payments');
+  }
+
+  async fetchWorkerPayments(workerId: string): Promise<any[]> {
+    return this.request('GET', `/worker-payments/worker/${workerId}`);
+  }
+
+  async recordPayment(payment: any): Promise<any> {
+    return this.request('POST', '/worker-payments', payment);
+  }
+
   // MARK: - Worker Job Assignments API
 
   async fetchWorkerJobAssignments(): Promise<any[]> {
@@ -247,34 +277,64 @@ class APIService {
     });
   }
 
+  async updateUserProfile(data: { name?: string; phone?: string; photoURL?: string }): Promise<any> {
+    return this.request('PUT', '/auth/profile', data);
+  }
+
+  async deleteAccount(): Promise<void> {
+    return this.request('DELETE', '/auth/account');
+  }
+
   // MARK: - AI Insights API
 
   async fetchAIInsights(): Promise<any[]> {
     return this.request('GET', '/ai-insights');
   }
 
-  async generateAIInsights(jobId: string): Promise<any> {
-    return this.request('POST', '/ai-insights', { jobId });
+  async generateAIInsights(jobId?: string): Promise<any> {
+    // If jobId provided, generate for specific job, otherwise generate for all jobs
+    const endpoint = jobId ? `/ai-insights/generate/${jobId}` : '/ai-insights/generate';
+    return this.request('POST', endpoint);
   }
 
   // MARK: - File Upload
 
-  async uploadFile(file: File, type: 'receipt' | 'document'): Promise<string> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', type);
+  async uploadFile(file: File, type: 'receipt' | 'document' | 'profile'): Promise<string> {
+    const maxRetries = 3;
+    let lastError: any;
 
-    const response = await this.axiosInstance.post<{ url: string }>(
-      '/upload',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Backend expects /api/upload/receipt or /api/upload/document or /api/upload/profile
+        const endpoint = `/upload/${type}`;
+
+        const response = await this.axiosInstance.post<{ url: string }>(
+          endpoint,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+            timeout: 60000, // 60 seconds for file upload
+          }
+        );
+
+        return response.data.url;
+      } catch (error: any) {
+        console.error(`Upload attempt ${attempt} failed:`, error);
+        lastError = error;
+        
+        if (attempt < maxRetries) {
+          // Wait before retry (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
       }
-    );
+    }
 
-    return response.data.url;
+    throw new Error(lastError?.response?.data?.error || lastError?.message || 'Failed to upload file after 3 attempts');
   }
 }
 

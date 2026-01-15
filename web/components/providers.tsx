@@ -1,7 +1,9 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, ReactNode } from 'react';
+import { useEffect, useState, ReactNode } from 'react';
+import APIService from '@/lib/api';
+import AuthService from '@/lib/auth';
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -21,6 +23,26 @@ export default function Providers({ children }: { children: ReactNode }) {
         },
       })
   );
+
+  // Rehydrate auth on client boot so guards/pages see the token before routing.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      APIService.setAccessToken(token);
+    }
+
+    const userJSON = localStorage.getItem('current_user');
+    if (userJSON) {
+      try {
+        const user = JSON.parse(userJSON);
+        AuthService.saveCurrentUser(user as any);
+      } catch (err) {
+        // ignore parse errors; user will be re-fetched on demand
+      }
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

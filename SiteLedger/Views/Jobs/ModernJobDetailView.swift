@@ -65,7 +65,7 @@ struct ModernJobDetailView: View {
                                     Text("Start")
                                         .font(ModernDesign.Typography.captionSmall)
                                         .foregroundColor(ModernDesign.Colors.textTertiary)
-                                    Text(job.startDate.formatted(.dateTime.month(.abbreviated).day()))
+                                    Text(job.startDate.localDateString)
                                         .font(ModernDesign.Typography.label)
                                         .foregroundColor(ModernDesign.Colors.textPrimary)
                                 }
@@ -75,7 +75,7 @@ struct ModernJobDetailView: View {
                                         Text("End")
                                             .font(ModernDesign.Typography.captionSmall)
                                             .foregroundColor(ModernDesign.Colors.textTertiary)
-                                        Text(endDate.formatted(.dateTime.month(.abbreviated).day()))
+                                        Text(endDate.localDateString)
                                             .font(ModernDesign.Typography.label)
                                             .foregroundColor(ModernDesign.Colors.textPrimary)
                                     }
@@ -407,7 +407,7 @@ struct ReceiptsTabContent: View {
                                 Text(receipt.vendor ?? "Unknown Vendor")
                                     .font(ModernDesign.Typography.label)
                                     .foregroundColor(ModernDesign.Colors.textPrimary)
-                                Text((receipt.date ?? Date()).formatted(.dateTime.month(.abbreviated).day()))
+                                Text((receipt.date ?? Date()).localDateString)
                                     .font(ModernDesign.Typography.caption)
                                     .foregroundColor(ModernDesign.Colors.textTertiary)
                             }
@@ -488,7 +488,7 @@ struct TimesheetsTabContent: View {
                                 .foregroundColor(ModernDesign.Colors.accent)
                             
                             VStack(alignment: .leading, spacing: 2) {
-                                Text((timesheet.clockIn ?? Date()).formatted(.dateTime.month(.abbreviated).day()))
+                                Text((timesheet.clockIn ?? Date()).localDateTimeString)
                                     .font(ModernDesign.Typography.label)
                                     .foregroundColor(ModernDesign.Colors.textPrimary)
                             }

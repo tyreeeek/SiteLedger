@@ -119,8 +119,11 @@ struct PrimaryButton: View {
     
     var body: some View {
         Button(action: {
+            print("🔘 PrimaryButton tapped: '\(title)'")
             HapticsManager.shared.medium()
+            print("🔘 Calling action closure...")
             action()
+            print("🔘 Action closure completed")
         }) {
             HStack(spacing: DesignSystem.Spacing.small) {
                 if isLoading {

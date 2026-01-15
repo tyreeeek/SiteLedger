@@ -9,8 +9,6 @@ struct ResetPasswordView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var animateIcon = false
-    @State private var resetToken: String? = nil
-    @State private var showTokenSheet = false
     @State private var showConfirmView = false
     
     // Fresh color palette - Teal & Coral accent
@@ -212,11 +210,6 @@ struct ResetPasswordView: View {
         }
         .animation(.spring(response: 0.4), value: showSuccess)
         .animation(.spring(response: 0.4), value: showError)
-        .sheet(isPresented: $showTokenSheet) {
-            DevResetTokenView(token: resetToken ?? "", email: email) {
-                dismiss()
-            }
-        }
         .fullScreenCover(isPresented: $showConfirmView) {
             ConfirmPasswordResetView(email: email)
                 .environmentObject(authService)
@@ -249,18 +242,12 @@ struct ResetPasswordView: View {
                 await MainActor.run {
                     withAnimation { showSuccess = true }
                     HapticsManager.shared.success()
-                    
-                    // If development token is returned, show it
-                    if let token = response.resetToken {
-                        resetToken = token
-                        showTokenSheet = true
-                    }
                 }
                 
-                // Wait a moment to show success message
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                // Wait 2 seconds to show success message
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
                 
-                // Show confirm view to enter token and new password
+                // Go directly to confirm view (production flow)
                 await MainActor.run { 
                     showConfirmView = true 
                 }
@@ -315,6 +302,7 @@ struct DevResetTokenView: View {
                                     .foregroundColor(.blue)
                                 Text(email)
                                     .font(.system(.body, design: .monospaced))
+                                    .foregroundColor(.primary)
                             }
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -327,12 +315,12 @@ struct DevResetTokenView: View {
                                         .foregroundColor(.orange)
                                     Text("Reset Token:")
                                         .font(.subheadline.bold())
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(.primary)
                                 }
                                 
                                 Text(token)
                                     .font(.system(.caption, design: .monospaced))
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.black)
                                     .padding()
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .background(Color.gray.opacity(0.1))

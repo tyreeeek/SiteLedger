@@ -259,7 +259,7 @@ struct ReceiptRowView: View {
                 Text(receipt.vendor ?? "Unknown Vendor")
                     .font(.subheadline)
                     .foregroundColor(AppTheme.textPrimary)
-                Text((receipt.date ?? Date()).formatted(date: .abbreviated, time: .omitted))
+                Text((receipt.date ?? Date()).localDateString)
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
             }

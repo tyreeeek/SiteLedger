@@ -197,7 +197,7 @@ router.post('/', [
 
 /**
  * POST /api/timesheets/clock-in
- * Clock in to a job (workers)
+ * Clock in to a job (workers) with geofence validation
  */
 router.post('/clock-in', [
     body('jobID').notEmpty(),
@@ -222,10 +222,46 @@ router.post('/clock-in', [
         
         const { jobID, latitude, longitude, location } = req.body;
         
-        // Get job info for owner_id
-        const jobResult = await pool.query('SELECT owner_id FROM jobs WHERE id = $1', [jobID]);
+        // Get job info including geofence settings
+        const jobResult = await pool.query(`
+            SELECT owner_id, geofence_enabled, geofence_latitude, geofence_longitude, geofence_radius, job_name
+            FROM jobs WHERE id = $1
+        `, [jobID]);
+        
         if (jobResult.rows.length === 0) {
             return res.status(404).json({ error: 'Job not found' });
+        }
+        
+        const job = jobResult.rows[0];
+        
+        // GEOFENCE VALIDATION
+        if (job.geofence_enabled) {
+            if (!latitude || !longitude) {
+                return res.status(400).json({ 
+                    error: 'Location required for this job',
+                    geofenceRequired: true
+                });
+            }
+            
+            // Calculate distance using Haversine formula
+            const distance = calculateDistance(
+                latitude, 
+                longitude, 
+                job.geofence_latitude, 
+                job.geofence_longitude
+            );
+            
+            if (distance > job.geofence_radius) {
+                return res.status(403).json({ 
+                    error: `You must be within ${job.geofence_radius}m of the job site to clock in. You are ${Math.round(distance)}m away.`,
+                    geofenceViolation: true,
+                    distance: Math.round(distance),
+                    requiredRadius: job.geofence_radius,
+                    jobName: job.job_name
+                });
+            }
+            
+            console.log(`✅ Geofence validated: Worker within ${Math.round(distance)}m of job site (limit: ${job.geofence_radius}m)`);
         }
         
         const result = await pool.query(`
@@ -235,7 +271,7 @@ router.post('/clock-in', [
             ) VALUES ($1, $2, $3, NOW(), 'working', $4, $5, $6, '')
             RETURNING *
         `, [
-            jobResult.rows[0].owner_id,
+            job.owner_id,
             req.user.id,
             jobID,
             location || null,
@@ -274,6 +310,22 @@ router.post('/clock-in', [
         res.status(500).json({ error: 'Failed to clock in' });
     }
 });
+
+// Helper function: Calculate distance between two coordinates (Haversine formula)
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c; // Distance in meters
+}
 
 /**
  * POST /api/timesheets/clock-out

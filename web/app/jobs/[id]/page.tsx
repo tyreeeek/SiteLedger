@@ -27,6 +27,12 @@ export default function JobDetails() {
   const [aiInsights, setAiInsights] = useState<any>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
 
+  // Get current user and permissions
+  const currentUser = AuthService.getCurrentUser();
+  const isOwner = currentUser?.role === 'owner';
+  const workerPermissions: any = currentUser?.workerPermissions || {};
+  const canViewFinancials = isOwner || workerPermissions.canViewFinancials === true;
+
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
       router.push('/auth/signin');
@@ -181,77 +187,81 @@ export default function JobDetails() {
           )}
         </div>
 
-        {/* Financial Cards Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        {/* Financial Cards Grid - Only show to owners or workers with canViewFinancials permission */}
+        {canViewFinancials && (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                  <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Project Value</span>
               </div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Project Value</span>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(job.projectValue || 0)}</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(job.projectValue || 0)}</p>
-          </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <CreditCard className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                  <CreditCard className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Payments Received</span>
               </div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Payments Received</span>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(job.amountPaid || 0)}</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(job.amountPaid || 0)}</p>
-          </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <Users className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                  <Users className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Total Cost</span>
               </div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Total Cost</span>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(laborCost)}</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(laborCost)}</p>
-          </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-                <DollarSign className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+                  <DollarSign className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Balance Due</span>
               </div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Balance Due</span>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(balanceDue)}</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(balanceDue)}</p>
-          </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-emerald-100 dark:bg-emerald-900 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900 rounded-lg">
+                  <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Profit</span>
               </div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Profit</span>
+              <p className={`text-2xl font-bold ${profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                {formatCurrency(profit)}
+              </p>
             </div>
-            <p className={`text-2xl font-bold ${profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-              {formatCurrency(profit)}
+          </div>
+        )}
+
+        {/* Payment Progress - Only show to owners or workers with canViewFinancials permission */}
+        {canViewFinancials && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Payment Progress</h3>
+              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{Math.round(paymentProgress)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
+                style={{ width: `${Math.min(paymentProgress, 100)}%` }}
+              />
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              Remaining: {formatCurrency(balanceDue)}
             </p>
           </div>
-        </div>
-
-        {/* Payment Progress */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Payment Progress</h3>
-            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{Math.round(paymentProgress)}%</span>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
-              style={{ width: `${Math.min(paymentProgress, 100)}%` }}
-            />
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-            Remaining: {formatCurrency(balanceDue)}
-          </p>
-        </div>
+        )}
 
         {/* Edit Job Button */}
         <button

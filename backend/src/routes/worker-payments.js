@@ -12,6 +12,22 @@ const router = express.Router();
 router.use(authenticate);
 
 /**
+ * Helper function to format Date objects as YYYY-MM-DD strings
+ * Uses UTC methods to prevent timezone conversion issues
+ */
+function formatDate(date) {
+    if (!date) return null;
+    if (typeof date === 'string') return date;
+    
+    const d = new Date(date);
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
+/**
  * GET /api/worker-payments
  * Get all worker payments (owner view)
  */
@@ -32,9 +48,9 @@ router.get('/', requireOwner, async (req, res) => {
             workerName: p.worker_name,
             workerEmail: p.worker_email,
             amount: parseFloat(p.amount),
-            paymentDate: p.payment_date,
-            periodStart: p.period_start,
-            periodEnd: p.period_end,
+            paymentDate: formatDate(p.payment_date),
+            periodStart: formatDate(p.period_start),
+            periodEnd: formatDate(p.period_end),
             hoursWorked: parseFloat(p.hours_worked),
             hourlyRate: parseFloat(p.hourly_rate),
             calculatedEarnings: parseFloat(p.calculated_earnings),
@@ -87,9 +103,9 @@ router.get('/worker/:workerID', async (req, res) => {
             workerID: p.worker_id,
             workerName: p.worker_name,
             amount: parseFloat(p.amount),
-            paymentDate: p.payment_date,
-            periodStart: p.period_start,
-            periodEnd: p.period_end,
+            paymentDate: formatDate(p.payment_date),
+            periodStart: formatDate(p.period_start),
+            periodEnd: formatDate(p.period_end),
             hoursWorked: parseFloat(p.hours_worked),
             hourlyRate: parseFloat(p.hourly_rate),
             calculatedEarnings: parseFloat(p.calculated_earnings),
@@ -162,8 +178,8 @@ router.get('/summary/:workerID', async (req, res) => {
             totalPaid: parseFloat(summary.total_paid) || 0,
             totalHours: parseFloat(summary.total_hours) || 0,
             avgHourlyRate: parseFloat(summary.avg_hourly_rate) || 0,
-            firstPaymentDate: summary.first_payment_date,
-            lastPaymentDate: summary.last_payment_date
+            firstPaymentDate: formatDate(summary.first_payment_date),
+            lastPaymentDate: formatDate(summary.last_payment_date)
         });
     } catch (error) {
         console.error('Get payroll summary error:', error);
@@ -210,9 +226,9 @@ router.get('/:id', async (req, res) => {
             workerName: p.worker_name,
             workerEmail: p.worker_email,
             amount: parseFloat(p.amount),
-            paymentDate: p.payment_date,
-            periodStart: p.period_start,
-            periodEnd: p.period_end,
+            paymentDate: formatDate(p.payment_date),
+            periodStart: formatDate(p.period_start),
+            periodEnd: formatDate(p.period_end),
             hoursWorked: parseFloat(p.hours_worked),
             hourlyRate: parseFloat(p.hourly_rate),
             calculatedEarnings: parseFloat(p.calculated_earnings),
@@ -310,9 +326,9 @@ router.post('/', [
             workerID: p.worker_id,
             workerName: p.worker_name,
             amount: parseFloat(p.amount),
-            paymentDate: p.payment_date,
-            periodStart: p.period_start,
-            periodEnd: p.period_end,
+            paymentDate: formatDate(p.payment_date),
+            periodStart: formatDate(p.period_start),
+            periodEnd: formatDate(p.period_end),
             hoursWorked: parseFloat(p.hours_worked),
             hourlyRate: parseFloat(p.hourly_rate),
             calculatedEarnings: parseFloat(p.calculated_earnings),
@@ -431,9 +447,9 @@ router.put('/:id', [
             workerID: p.worker_id,
             workerName: p.worker_name,
             amount: parseFloat(p.amount),
-            paymentDate: p.payment_date,
-            periodStart: p.period_start,
-            periodEnd: p.period_end,
+            paymentDate: formatDate(p.payment_date),
+            periodStart: formatDate(p.period_start),
+            periodEnd: formatDate(p.period_end),
             hoursWorked: parseFloat(p.hours_worked),
             hourlyRate: parseFloat(p.hourly_rate),
             calculatedEarnings: parseFloat(p.calculated_earnings),

@@ -510,13 +510,34 @@ struct MoreTermsOfServiceView: View {
                         VStack(alignment: .leading, spacing: ModernDesign.Spacing.md) {
                             Text("Terms of Service")
                                 .font(ModernDesign.Typography.title2)
-                            Text("Last updated: January 2025")
+                            Text("Last updated: January 15, 2026")
                                 .font(ModernDesign.Typography.caption)
                                 .foregroundColor(ModernDesign.Colors.textSecondary)
                             Divider()
                             PolicySection(title: "Acceptance", content: "By using SiteLedger, you agree to these Terms of Service.")
                             PolicySection(title: "Use of Service", content: "SiteLedger is a business management tool. You are responsible for maintaining account confidentiality.")
                             PolicySection(title: "AI Features", content: "AI features provide suggestions. You are responsible for reviewing AI-generated content.")
+                            PolicySection(title: "Service Provider", content: "SiteLedger is powered by Z & N Global.")
+                            
+                            // Prominent data loss disclaimer
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.orange)
+                                    Text("Limitation of Liability - Data Loss")
+                                        .font(ModernDesign.Typography.label)
+                                        .foregroundColor(.orange)
+                                }
+                                
+                                Text("IMPORTANT: Z & N Global and SiteLedger shall not be liable for any loss, corruption, or unauthorized access to user data. Users are responsible for maintaining their own backups. By using this service, you acknowledge that data loss may occur and the service providers bear NO liability for such incidents.")
+                                    .font(ModernDesign.Typography.caption)
+                                    .foregroundColor(ModernDesign.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding()
+                            .background(Color.orange.opacity(0.1))
+                            .cornerRadius(8)
+                            
                             PolicySection(title: "Termination", content: "You may delete your account at any time.")
                         }
                     }

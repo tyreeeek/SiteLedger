@@ -53,11 +53,54 @@ export default function AccountSettings() {
 
   const handleSaveProfile = async () => {
     try {
-      // TODO: Update user profile via API
-      // await APIService.updateUserProfile({ name, email, phone, avatarUrl });
+      // Upload avatar if it's a data URL (new image selected)
+      let finalAvatarUrl = avatarUrl;
+      if (avatarUrl && avatarUrl.startsWith('data:')) {
+        try {
+          // Convert data URL to blob
+          const response = await fetch(avatarUrl);
+          const blob = await response.blob();
+          const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+          
+          // Upload to server
+          finalAvatarUrl = await APIService.uploadFile(file, 'profile');
+          toast.success('Avatar uploaded successfully!');
+        } catch (uploadError) {
+          console.error('Avatar upload failed:', uploadError);
+          toast.error('Failed to upload avatar, but continuing with profile update...');
+        }
+      }
+
+      const updatedUser = await APIService.updateUserProfile({ 
+        name, 
+        phone, 
+        photoURL: finalAvatarUrl 
+      });
+      
+      // Update local user data with backend response
+      const currentUser = AuthService.getCurrentUser();
+      if (currentUser && updatedUser) {
+        const updatedAuth = { 
+          ...currentUser, 
+          name: updatedUser.name || name,
+          phone: updatedUser.phone || phone,
+          photoURL: updatedUser.photoURL || finalAvatarUrl
+        };
+        localStorage.setItem('user', JSON.stringify(updatedAuth));
+      }
+      
+      // Update state with new values
+      setAvatarUrl(finalAvatarUrl);
+      
       toast.success('Profile updated successfully!');
-    } catch (error) {
-      toast.error('Failed to update profile.');
+      
+      // Force page reload to refresh all components showing user data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      toast.error(error.response?.data?.error || 'Failed to update profile.');
     }
   };
 
@@ -90,12 +133,12 @@ export default function AccountSettings() {
 
     if (confirmed) {
       try {
-        // TODO: Delete account via API
-        // await APIService.deleteAccount();
+        await APIService.deleteAccount();
+        toast.success('Account deleted successfully');
         AuthService.signOut();
         router.push('/');
-      } catch (error) {
-        toast.error('Failed to delete account.');
+      } catch (error: any) {
+        toast.error(error.response?.data?.error || 'Failed to delete account.');
       }
     }
   };

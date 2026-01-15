@@ -32,6 +32,12 @@ export default function AIInsights() {
     
     try {
       const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setMessage('Please sign in to generate insights');
+        return;
+      }
+      
+      console.log('Generating AI insights...');
       const response = await fetch('https://api.siteledger.ai/api/ai-insights/generate', {
         method: 'POST',
         headers: {
@@ -40,23 +46,39 @@ export default function AIInsights() {
         }
       });
 
+      console.log('AI insights response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to generate insights');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('AI insights error:', errorData);
+        throw new Error(errorData.error || `Failed with status ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('AI insights data:', data);
       
       // Transform the response into Insight objects
       if (data.insights && Array.isArray(data.insights)) {
-        setInsights(data.insights);
-        setMessage('AI insights generated successfully!');
+        // Map backend insights to frontend format
+        const mappedInsights = data.insights.map((insight: any) => ({
+          category: insight.severity || 'info',
+          title: insight.title,
+          description: insight.description,
+          priority: insight.severity === 'critical' ? 'high' : insight.severity === 'warning' ? 'medium' : 'low',
+          recommendation: insight.actionItems ? insight.actionItems.join('; ') : undefined
+        }));
+        setInsights(mappedInsights);
+        setMessage(`Generated ${mappedInsights.length} AI insights successfully!`);
       } else if (data.message) {
         setMessage(data.message);
+      } else {
+        setMessage('No insights generated. Try adding more data to your jobs.');
       }
       
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
-      setMessage('Failed to generate insights. Please try again.');
+      setTimeout(() => setMessage(''), 5000);
+    } catch (error: any) {
+      console.error('Generate insights error:', error);
+      setMessage(error.message || 'Failed to generate insights. Please try again.');
     } finally {
       setIsGenerating(false);
     }

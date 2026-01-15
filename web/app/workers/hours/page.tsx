@@ -18,6 +18,7 @@ interface WorkerHours {
 
 export default function AllWorkersHours() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [workers, setWorkers] = useState<any[]>([]);
   const [timesheets, setTimesheets] = useState<any[]>([]);
   const [workerHours, setWorkerHours] = useState<WorkerHours[]>([]);
@@ -28,28 +29,55 @@ export default function AllWorkersHours() {
     if (!AuthService.isAuthenticated()) {
       router.push('/auth/signin');
     } else {
-      loadData();
+      const currentUser = AuthService.getCurrentUser();
+      // Workers should use the timesheets page instead
+      if (currentUser?.role === 'worker') {
+        router.push('/timesheets');
+        return;
+      }
+      setUser(currentUser);
+      loadData(currentUser);
     }
   }, []);
 
   useEffect(() => {
-    if (workers.length > 0 && timesheets.length > 0) {
+    if (timesheets.length > 0 && ((user?.role === 'owner' && workers.length > 0) || user?.role === 'worker')) {
       calculateWorkerHours();
     }
-  }, [workers, timesheets, dateRange]);
+  }, [workers, timesheets, dateRange, user]);
 
-  const loadData = async () => {
+  const loadData = async (currentUser: any) => {
     try {
       setIsLoading(true);
-      const [workersData, timesheetsData] = await Promise.all([
-        APIService.fetchWorkers(),
-        APIService.fetchTimesheets()
-      ]);
-
-      setWorkers(workersData);
-      setTimesheets(timesheetsData);
+      
+      if (currentUser?.role === 'owner') {
+        // Owners can see all workers
+        const [workersData, timesheetsData] = await Promise.all([
+          APIService.fetchWorkers(),
+          APIService.fetchTimesheets()
+        ]);
+        setWorkers(workersData);
+        setTimesheets(timesheetsData);
+      } else {
+        // Workers only see their own timesheets
+        const timesheetsData = await APIService.fetchTimesheets();
+        console.log('=== WORKER DATA DEBUG ===');
+        console.log('Current user ID:', currentUser.id);
+        console.log('Current user object:', currentUser);
+        console.log('Loaded timesheets count:', timesheetsData.length);
+        console.log('First timesheet:', timesheetsData[0]);
+        console.log('Timesheet workerIDs:', timesheetsData.map(t => t.workerID));
+        console.log('========================');
+        setTimesheets(timesheetsData);
+        // Create a "worker" entry for the current user
+        setWorkers([{
+          id: currentUser.id,
+          name: currentUser.name,
+          hourly_rate: currentUser.hourlyRate || 0
+        }]);
+      }
     } catch (error) {
-      // Silently fail - UI will show empty state
+      console.error('Failed to load data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -63,16 +91,43 @@ export default function AllWorkersHours() {
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    console.log('Calculating hours for workers:', workers.length);
+    console.log('Total timesheets:', timesheets.length);
+    console.log('Start of week:', startOfWeek);
+    console.log('Start of month:', startOfMonth);
+
     const hours: WorkerHours[] = workers.map(worker => {
-      const workerTimesheets = timesheets.filter(t => t.user_id === worker.id);
+      // Backend may return workerID or worker_id depending on endpoint
+      const workerTimesheets = timesheets.filter(t => 
+        t.workerID === worker.id || t.worker_id === worker.id
+      );
+      
+      console.log(`Worker ${worker.name} (${worker.id}):`, {
+        totalTimesheets: workerTimesheets.length,
+        sampleTimesheet: workerTimesheets[0],
+        allTimesheetWorkerIds: timesheets.slice(0, 3).map(t => ({ workerID: t.workerID, worker_id: t.worker_id }))
+      });
       
       const hoursThisWeek = workerTimesheets
-        .filter(t => new Date(t.date) >= startOfWeek)
-        .reduce((sum, t) => sum + (t.hours || 0), 0);
+        .filter(t => {
+          // Use clockIn timestamp instead of date field
+          const clockInDate = new Date(t.clockIn);
+          return clockInDate >= startOfWeek;
+        })
+        .reduce((sum, t) => sum + (t.effectiveHours || t.hours || 0), 0);
 
       const hoursThisMonth = workerTimesheets
-        .filter(t => new Date(t.date) >= startOfMonth)
-        .reduce((sum, t) => sum + (t.hours || 0), 0);
+        .filter(t => {
+          // Use clockIn timestamp instead of date field
+          const clockInDate = new Date(t.clockIn);
+          return clockInDate >= startOfMonth;
+        })
+        .reduce((sum, t) => sum + (t.effectiveHours || t.hours || 0), 0);
+
+      console.log(`Worker ${worker.name} hours:`, {
+        hoursThisWeek,
+        hoursThisMonth
+      });
 
       const hourlyRate = worker.hourly_rate || 0;
       
@@ -82,7 +137,7 @@ export default function AllWorkersHours() {
       } else if (dateRange === 'month') {
         totalEarnings = hoursThisMonth * hourlyRate;
       } else {
-        const totalHours = workerTimesheets.reduce((sum, t) => sum + (t.hours || 0), 0);
+        const totalHours = workerTimesheets.reduce((sum, t) => sum + (t.effectiveHours || t.hours || 0), 0);
         totalEarnings = totalHours * hourlyRate;
       }
 
@@ -96,6 +151,7 @@ export default function AllWorkersHours() {
       };
     });
 
+    console.log('Calculated worker hours:', hours);
     setWorkerHours(hours);
   };
 
@@ -121,7 +177,9 @@ export default function AllWorkersHours() {
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">All Workers Hours</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {user?.role === 'owner' ? 'All Workers Hours' : 'My Hours'}
+          </h1>
           
           {/* Date Range Filter */}
           <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
@@ -224,7 +282,9 @@ export default function AllWorkersHours() {
                 {workerHours.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                      No worker data available. Add workers to see hours and earnings.
+                      {user?.role === 'owner' 
+                        ? 'No worker data available. Add workers to see hours and earnings.'
+                        : 'No timesheet data available. Clock in to start tracking your hours.'}
                     </td>
                   </tr>
                 ) : (

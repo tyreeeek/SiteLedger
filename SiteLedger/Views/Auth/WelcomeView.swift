@@ -77,35 +77,6 @@ struct WelcomeView: View {
                                             .stroke(ModernDesign.Colors.primary, lineWidth: 1.5)
                                     )
                             }
-                            
-                            // Divider
-                            HStack {
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.3))
-                                    .frame(height: 1)
-                                Text("or")
-                                    .font(.footnote)
-                                    .foregroundColor(.gray)
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.3))
-                                    .frame(height: 1)
-                            }
-                            .padding(.vertical, 4)
-                            
-                            // Apple Sign In Button
-                            SignInWithAppleButton(
-                                onRequest: { request in
-                                    request.requestedScopes = [.fullName, .email]
-                                    request.nonce = UUID().uuidString
-                                    request.state = UUID().uuidString
-                                },
-                                onCompletion: { result in
-                                    handleAppleSignIn(result)
-                                }
-                            )
-                            .signInWithAppleButtonStyle(.black)
-                            .frame(height: DesignSystem.Layout.buttonHeight)
-                            .cornerRadius(DesignSystem.Layout.buttonRadius)
                         }
                     }
                     .padding(DesignSystem.Spacing.extraLarge)
@@ -150,23 +121,6 @@ struct WelcomeView: View {
                 }
             } message: {
                 Text(errorMessage)
-            }
-        }
-    }
-    
-    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
-        Task {
-            do {
-                try await authService.signInWithApple(result)
-                HapticsManager.shared.success()
-            } catch {
-                HapticsManager.shared.error()
-                await MainActor.run {
-                    // Use the error message already set by AuthService
-                    // which includes backend response errors
-                    errorMessage = authService.errorMessage ?? error.localizedDescription
-                    showingError = true
-                }
             }
         }
     }

@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CoreLocation
 
 @MainActor
 class TimesheetViewModel: ObservableObject {
@@ -114,8 +115,20 @@ class TimesheetViewModel: ObservableObject {
     }
     
     func clockIn(workerID: String, jobID: String, notes: String? = nil) async throws {
+        // Get current location for geofence validation
+        let location = await LocationManager.shared.getCurrentLocation()
+        let latitude = location?.coordinate.latitude
+        let longitude = location?.coordinate.longitude
+        let locationString = await LocationManager.shared.getCurrentLocationString()
+        
         // Use the dedicated clock-in endpoint - this creates the timesheet on backend
-        let apiTimesheet = try await apiService.clockIn(jobID: jobID, latitude: nil, longitude: nil, location: nil)
+        // Backend will validate geofence if enabled for this job
+        let apiTimesheet = try await apiService.clockIn(
+            jobID: jobID,
+            latitude: latitude,
+            longitude: longitude,
+            location: locationString
+        )
         print("🟣 ClockIn API successful, timesheet created: \(apiTimesheet.id)")
         
         // Don't manually set state here - let loadData() be the single source of truth

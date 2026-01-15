@@ -70,8 +70,15 @@ export default function UploadDocument() {
       const formDataUpload = new FormData();
       formDataUpload.append('file', selectedFile);
       
-      const token = localStorage.getItem('api_access_token');
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        toast.error('Authentication required. Please sign in again.');
+        router.push('/auth/signin');
+        return;
+      }
+      
       const apiBaseURL = process.env.NEXT_PUBLIC_API_URL || 'https://api.siteledger.ai';
+      
       const uploadResponse = await fetch(`${apiBaseURL}/api/upload/document`, {
         method: 'POST',
         headers: {
@@ -80,12 +87,17 @@ export default function UploadDocument() {
         body: formDataUpload
       });
 
+      console.log('Upload response status:', uploadResponse.status);
+
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json();
+        const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Upload error:', errorData);
         throw new Error(errorData.error || `Upload failed with status ${uploadResponse.status}`);
       }
 
       const { url: fileURL } = await uploadResponse.json();
+
+      console.log('File uploaded successfully, URL:', fileURL);
 
       const documentData = {
         jobID: formData.jobID || null,
@@ -96,11 +108,14 @@ export default function UploadDocument() {
         // Backend automatically sets owner_id from auth token
       };
 
+      console.log('Creating document record with data:', documentData);
       await APIService.createDocument(documentData);
       toast.success('Document uploaded successfully!');
       router.push('/documents');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to upload document. Please try again.');
+      console.error('Document upload error:', error);
+      const errorMessage = error.message || 'Failed to upload document. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

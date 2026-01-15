@@ -98,7 +98,8 @@ export default function Settings() {
     );
   }
 
-  const sections: SettingsSection[] = [
+  // Owner settings - full access to all features
+  const ownerSections: SettingsSection[] = [
     {
       title: 'AI Settings',
       description: 'Configure AI-powered features and automation',
@@ -230,6 +231,82 @@ export default function Settings() {
     }
   ];
 
+  // Worker settings - simplified, personal settings only
+  const workerSections: SettingsSection[] = [
+    {
+      title: 'My Account',
+      description: 'Manage your personal profile and settings',
+      icon: User,
+      iconBg: 'bg-green-100',
+      iconColor: 'text-green-600',
+      items: [
+        {
+          name: 'Account Settings',
+          description: 'Update your personal account details',
+          link: '/settings/account',
+          icon: User
+        }
+      ]
+    },
+    {
+      title: 'Preferences',
+      description: 'Customize your experience',
+      icon: Palette,
+      iconBg: 'bg-orange-100',
+      iconColor: 'text-orange-600',
+      items: [
+        {
+          name: 'Appearance',
+          description: 'Choose theme and display preferences',
+          link: '/settings/appearance',
+          icon: Palette
+        },
+        {
+          name: 'Notifications',
+          description: 'Manage alerts and notifications',
+          link: '/settings/notifications',
+          icon: Bell
+        }
+      ]
+    },
+    {
+      title: 'Legal & Support',
+      description: 'Privacy, terms, and help resources',
+      icon: FileText,
+      iconBg: 'bg-gray-100',
+      iconColor: 'text-gray-600',
+      items: [
+        {
+          name: 'Privacy Policy',
+          description: 'How we collect, use, and protect your data',
+          link: '/legal/privacy',
+          icon: Shield
+        },
+        {
+          name: 'Terms of Service',
+          description: 'Terms and conditions for using SiteLedger',
+          link: '/legal/terms',
+          icon: FileText
+        },
+        {
+          name: 'FAQ',
+          description: 'Frequently asked questions and answers',
+          link: '/support/faq',
+          icon: HelpCircle
+        },
+        {
+          name: 'Contact Support',
+          description: 'Get help from our support team',
+          link: '/support',
+          icon: HelpCircle
+        }
+      ]
+    }
+  ];
+
+  // Choose sections based on user role
+  const sections = user?.role === 'owner' ? ownerSections : workerSections;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -300,22 +377,24 @@ export default function Settings() {
           </div>
         ))}
 
-        {/* Delete Account Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-red-200 dark:border-red-800 shadow-sm overflow-hidden">
-          <button
-            onClick={() => setShowDeleteModal(true)}
-            className="w-full flex items-center gap-4 p-6 hover:bg-red-50 dark:hover:bg-red-900/20 transition text-left group"
-          >
-            <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-lg group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition">
-              <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-red-600 dark:text-red-400 text-lg">Delete Account</h3>
-              <p className="text-sm text-red-600 dark:text-red-400 mt-0.5">Permanently delete your account and all data</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-red-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition" />
-          </button>
-        </div>
+        {/* Delete Account Section - Only for owners */}
+        {user?.role === 'owner' && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-red-200 dark:border-red-800 shadow-sm overflow-hidden">
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="w-full flex items-center gap-4 p-6 hover:bg-red-50 dark:hover:bg-red-900/20 transition text-left group"
+            >
+              <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-lg group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition">
+                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-red-600 dark:text-red-400 text-lg">Delete Account</h3>
+                <p className="text-sm text-red-600 dark:text-red-400 mt-0.5">Permanently delete your account and all data</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-red-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition" />
+            </button>
+          </div>
+        )}
 
         {/* Sign Out Button */}
         <div className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">

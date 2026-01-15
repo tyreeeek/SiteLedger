@@ -313,6 +313,8 @@ struct AddReceiptView: View {
             }
             .onChange(of: selectedImage) { _, newValue in
                 if let image = newValue {
+                    print("📸 IMAGE FOUND - PROCESSING NOW")
+                    print("🔄 Calling AIService.processReceiptImage...")
                     // Trigger AI image processing
                     processImageWithAI(image)
                 }
@@ -350,6 +352,7 @@ struct AddReceiptView: View {
 
     /// Process receipt image with AI to extract vendor, amount, and date
     private func processImageWithAI(_ image: UIImage) {
+        print("🤖 processImageWithAI() called")
         isProcessingImage = true
         aiConfidence = 0.0
         aiFlags = []
@@ -357,13 +360,18 @@ struct AddReceiptView: View {
         
         Task {
             do {
+                print("⏳ Awaiting AIService.processReceiptImage...")
                 let receiptData = try await AIService.shared.processReceiptImage(image)
+                print("✅ GOT OCR RESULT: Vendor=\(receiptData.vendor), Amount=\(receiptData.amount)")
                 
                 await MainActor.run {
+                    print("📝 Auto-filling form fields...")
                     // Auto-fill form fields with AI-extracted data
                     vendor = receiptData.vendor
                     amount = String(format: "%.2f", receiptData.amount)
                     date = receiptData.date
+                    
+                    print("✅ Form filled: Vendor=\(vendor), Amount=\(amount)")
                     
                     // Use the confidence from OCR extraction
                     aiConfidence = receiptData.confidence

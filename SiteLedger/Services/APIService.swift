@@ -10,6 +10,11 @@ actor APIService {
     /// Backend API URL - Production DigitalOcean server with HTTPS
     private let baseURL = "https://api.siteledger.ai/api"
     
+    /// Public getter for baseURL (needed by AIService)
+    nonisolated var apiBaseURL: String {
+        return "https://api.siteledger.ai/api"
+    }
+    
     /// Stored JWT token
     private var accessToken: String?
     
@@ -61,7 +66,6 @@ actor APIService {
             await updateConnectionStatus(false)
             return false
         } catch {
-            print("[APIService] Health check failed: \(error.localizedDescription)")
             await updateConnectionStatus(false)
             return false
         }
@@ -135,32 +139,11 @@ actor APIService {
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
                 
-                // Debug logging for JSON decoding issues
-                if let jsonString = String(data: data, encoding: .utf8) {
-                    print("[APIService] Response JSON: \(jsonString)")
-                } else {
-                    print("[APIService] Failed to convert data to string")
-                }
-                
                 do {
                     return try decoder.decode(T.self, from: data)
                 } catch {
-                    print("[APIService] JSON Decoding Error: \(error)")
-                    if let decodingError = error as? DecodingError {
-                        switch decodingError {
-                        case .keyNotFound(let key, let context):
-                            print("[APIService] Key '\(key.stringValue)' not found: \(context.debugDescription)")
-                        case .typeMismatch(let type, let context):
-                            print("[APIService] Type mismatch for \(type): \(context.debugDescription)")
-                        case .valueNotFound(let type, let context):
-                            print("[APIService] Value not found for \(type): \(context.debugDescription)")
-                        case .dataCorrupted(let context):
-                            print("[APIService] Data corrupted: \(context.debugDescription)")
-                        @unknown default:
-                            print("[APIService] Unknown decoding error: \(error)")
-                        }
-                    }
-                    throw error
+                    // Throw user-friendly error instead of technical details
+                    throw APIError.serverError("Unable to process server response")
                 }
             case 401:
                 // Try to get specific error message from response (e.g., "Current password is incorrect")
@@ -183,16 +166,12 @@ actor APIService {
             let shouldRetry = shouldRetryForError(urlError) && retryCount < maxRetries
             
             if shouldRetry {
-                print("[APIService] Network error (attempt \(retryCount + 1)/\(maxRetries)): \(urlError.localizedDescription)")
-                print("[APIService] Retrying in \(retryDelay) seconds...")
-                
                 // Wait before retrying
                 try await Task.sleep(nanoseconds: UInt64(retryDelay * 1_000_000_000))
                 
                 // Retry the request
                 return try await request(method, path: path, body: body, retryCount: retryCount + 1)
             } else {
-                print("[APIService] Network error (final): \(urlError.localizedDescription)")
                 throw APIError.networkError(urlError.localizedDescription)
             }
         }
@@ -547,15 +526,9 @@ actor APIService {
         if let lat = latitude { body["latitude"] = lat }
         if let lng = longitude { body["longitude"] = lng }
         if let loc = location { body["location"] = loc }
-        print("🔶 ClockIn API call with jobID: \(jobID)")
-        do {
-            let result: APITimesheet = try await request("POST", path: "/timesheets/clock-in", body: body)
-            print("🔶 ClockIn SUCCESS: \(result.id)")
-            return result
-        } catch {
-            print("🔶 ClockIn FAILED: \(error)")
-            throw error
-        }
+        
+        let result: APITimesheet = try await request("POST", path: "/timesheets/clock-in", body: body)
+        return result
     }
     
     func clockOut(latitude: Double?, longitude: Double?, location: String?, notes: String?) async throws -> APITimesheet {
@@ -670,8 +643,7 @@ actor APIService {
         // Log error details if upload fails
         if httpResponse.statusCode != 200 {
             let errorString = String(data: responseData, encoding: .utf8) ?? "Unknown error"
-            print("❌ Upload failed (\(httpResponse.statusCode)): \(errorString)")
-            throw APIError.serverError("Upload failed: \(errorString)")
+            throw APIError.serverError("Unable to upload document")
         }
         
         return try JSONDecoder().decode(UploadResponse.self, from: responseData)
@@ -755,6 +727,8 @@ extension APIService {
     func fetchJobs() async throws -> [Job] {
         let apiJobs = try await getJobs()
         return apiJobs.map { apiJob in
+            let parsedStartDate = DateFormatters.parseAPIDate(apiJob.startDate)
+            
             var job = Job(
                 ownerID: apiJob.ownerID,
                 jobName: apiJob.jobName,
@@ -762,11 +736,11 @@ extension APIService {
                 address: apiJob.address,
                 latitude: apiJob.latitude,
                 longitude: apiJob.longitude,
-                startDate: ISO8601DateFormatter().date(from: apiJob.startDate) ?? Date(),
-                endDate: apiJob.endDate.flatMap { ISO8601DateFormatter().date(from: $0) },
+                startDate: parsedStartDate ?? Date(),
+                endDate: apiJob.endDate.flatMap { DateFormatters.parseAPIDate($0) },
                 status: Job.JobStatus(rawValue: apiJob.status) ?? .active,
                 notes: apiJob.notes,
-                createdAt: ISO8601DateFormatter().date(from: apiJob.createdAt) ?? Date(),
+                createdAt: DateFormatters.parseAPIDate(apiJob.createdAt) ?? Date(),
                 projectValue: apiJob.projectValue,
                 amountPaid: apiJob.amountPaid
             )
@@ -777,13 +751,19 @@ extension APIService {
     }
     
     func createJob(_ job: Job) async throws {
-        let dateFormatter = ISO8601DateFormatter()
+        // Use date-only format for PostgreSQL DATE columns to prevent timezone issues
+        let dateOnlyFormatter = DateFormatter()
+        dateOnlyFormatter.dateFormat = "yyyy-MM-dd"
+        dateOnlyFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        
+        let formattedStartDate = dateOnlyFormatter.string(from: job.startDate)
+        
         var body: [String: Any] = [
             "ownerID": job.ownerID,
             "jobName": job.jobName,
             "clientName": job.clientName,
             "address": job.address,
-            "startDate": dateFormatter.string(from: job.startDate),
+            "startDate": formattedStartDate,
             "status": job.status.rawValue,
             "notes": job.notes,
             "projectValue": job.projectValue,
@@ -791,19 +771,28 @@ extension APIService {
         ]
         if let lat = job.latitude { body["latitude"] = lat }
         if let lng = job.longitude { body["longitude"] = lng }
-        if let endDate = job.endDate { body["endDate"] = dateFormatter.string(from: endDate) }
+        if let endDate = job.endDate { 
+            body["endDate"] = dateOnlyFormatter.string(from: endDate)
+        }
         
-        _ = try await createJob(body)
+        let createdJob = try await createJob(body)
     }
     
     func updateJob(_ job: Job) async throws {
         guard let id = job.id else { return }
-        let dateFormatter = ISO8601DateFormatter()
+        
+        // Use date-only format for PostgreSQL DATE columns to prevent timezone issues
+        let dateOnlyFormatter = DateFormatter()
+        dateOnlyFormatter.dateFormat = "yyyy-MM-dd"
+        dateOnlyFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        
+        let formattedStartDate = dateOnlyFormatter.string(from: job.startDate)
+        
         var body: [String: Any] = [
             "jobName": job.jobName,
             "clientName": job.clientName,
             "address": job.address,
-            "startDate": dateFormatter.string(from: job.startDate),
+            "startDate": formattedStartDate,
             "status": job.status.rawValue,
             "notes": job.notes,
             "projectValue": job.projectValue,
@@ -811,9 +800,11 @@ extension APIService {
         ]
         if let lat = job.latitude { body["latitude"] = lat }
         if let lng = job.longitude { body["longitude"] = lng }
-        if let endDate = job.endDate { body["endDate"] = dateFormatter.string(from: endDate) }
+        if let endDate = job.endDate { 
+            body["endDate"] = dateOnlyFormatter.string(from: endDate)
+        }
         
-        _ = try await updateJob(id: id, updates: body)
+        let updatedJob = try await updateJob(id: id, updates: body)
     }
     
     // MARK: - Receipts
@@ -821,6 +812,8 @@ extension APIService {
     func fetchReceipts() async throws -> [Receipt] {
         let apiReceipts = try await getReceipts()
         return apiReceipts.map { apiReceipt in
+            let parsedDate = DateFormatters.parseAPIDate(apiReceipt.date)
+            
             var receipt = Receipt()
             receipt.id = apiReceipt.id
             receipt.ownerID = apiReceipt.ownerID
@@ -828,27 +821,32 @@ extension APIService {
             receipt.amount = apiReceipt.amount
             receipt.vendor = apiReceipt.vendor
             receipt.category = apiReceipt.category
-            receipt.date = ISO8601DateFormatter().date(from: apiReceipt.date) ?? Date()
+            receipt.date = parsedDate
             receipt.imageURL = apiReceipt.imageURL
             receipt.notes = apiReceipt.notes
-            receipt.createdAt = ISO8601DateFormatter().date(from: apiReceipt.createdAt) ?? Date()
+            receipt.createdAt = DateFormatters.parseAPIDate(apiReceipt.createdAt)
             return receipt
         }
     }
     
     func createReceipt(_ receipt: Receipt) async throws {
-        let dateFormatter = ISO8601DateFormatter()
+        // Use date-only format for PostgreSQL DATE columns to prevent timezone issues
+        let dateOnlyFormatter = DateFormatter()
+        dateOnlyFormatter.dateFormat = "yyyy-MM-dd"
+        dateOnlyFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        
         var body: [String: Any] = [
             "ownerID": receipt.ownerID ?? "",
             "amount": receipt.amount ?? 0,
             "vendor": receipt.vendor ?? "",
             "notes": receipt.notes ?? "",
-            "date": dateFormatter.string(from: receipt.date ?? Date())
+            "date": dateOnlyFormatter.string(from: receipt.date ?? Date())
         ]
         if let jobID = receipt.jobID { body["jobID"] = jobID }
         if let category = receipt.category { body["category"] = category }
         if let imageURL = receipt.imageURL { body["imageURL"] = imageURL }
         
+        print("📤 Creating receipt with date: \(dateOnlyFormatter.string(from: receipt.date ?? Date()))")
         _ = try await createReceipt(body)
     }
     
@@ -940,7 +938,7 @@ extension APIService {
             doc.aiProcessed = apiDoc.aiProcessed ?? false
             doc.aiSummary = apiDoc.aiSummary
             doc.aiConfidence = apiDoc.aiConfidence
-            doc.createdAt = ISO8601DateFormatter().date(from: apiDoc.createdAt) ?? Date()
+            doc.createdAt = DateFormatters.parseAPIDate(apiDoc.createdAt) ?? Date()
             return doc
         }
     }

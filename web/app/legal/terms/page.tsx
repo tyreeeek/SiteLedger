@@ -22,7 +22,7 @@ export default function TermsOfService() {
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm prose prose-blue max-w-none">
-          <p className="text-sm text-gray-500 mb-6">Last Updated: December 21, 2024</p>
+          <p className="text-sm text-gray-500 mb-6">Last Updated: January 15, 2026</p>
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Acceptance of Terms</h2>
@@ -264,14 +264,39 @@ export default function TermsOfService() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">16. Contact Information</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">16. Service Provider</h2>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              SiteLedger is powered by <strong>Z & N Global</strong>.
+            </p>
+          </section>
+
+          <section className="mb-8 bg-yellow-50 border-l-4 border-yellow-600 p-6 rounded-r-lg">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">17. Limitation of Liability - Data Loss</h2>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>IMPORTANT NOTICE:</strong> Z & N Global and SiteLedger shall not be liable for any loss, corruption, unauthorized access, or deletion of user data.
+            </p>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              Users acknowledge and agree that:
+            </p>
+            <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <li>Data loss may occur due to technical failures, security breaches, or other unforeseen circumstances</li>
+              <li>Users are solely responsible for maintaining their own backups and data redundancy</li>
+              <li>The service providers bear NO liability for any financial losses, business interruption, or damages resulting from data loss</li>
+              <li>Uploaded documents, receipts, timesheets, and other data may be permanently lost without possibility of recovery</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed mt-4">
+              <strong>By using this service, you explicitly acknowledge and accept that data loss may occur and that Z & N Global and SiteLedger bear no liability for such incidents.</strong>
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">18. Contact Information</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               For questions about these Terms, please contact us:
             </p>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-gray-700"><strong>Email:</strong> legal@siteledger.ai</p>
               <p className="text-gray-700"><strong>Support:</strong> <a href="/support" className="text-blue-600 hover:underline">Contact Support</a></p>
-              <p className="text-gray-700"><strong>Address:</strong> SiteLedger, Inc., [Your Address]</p>
             </div>
           </section>
 

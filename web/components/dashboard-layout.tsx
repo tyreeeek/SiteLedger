@@ -1,5 +1,6 @@
 'use client';
 
+// Version: 2.0 - Updated worker navigation
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AuthService from '@/lib/auth';
@@ -25,7 +26,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-const navigation = [
+const ownerNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Jobs', href: '/jobs', icon: Briefcase },
   { name: 'Receipts', href: '/receipts', icon: Receipt },
@@ -35,19 +36,16 @@ const navigation = [
   { name: 'Payroll', href: '/payroll', icon: DollarSign },
   { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Integrations', href: '/integrations', icon: LinkIcon },
-];
-
-const aiNavigation = [
-  { name: 'AI Automation', href: '/settings/ai-automation', icon: Brain },
-  { name: 'AI Insights', href: '/settings/ai-insights', icon: Brain },
-];
-
-const settingsNavigation = [
-  { name: 'Company Profile', href: '/settings/company', icon: Building },
-  { name: 'Account Settings', href: '/settings/account', icon: User },
-  { name: 'Approve Timesheets', href: '/timesheets/approve', icon: CheckSquare },
-  { name: 'Support & FAQ', href: '/support/faq', icon: HelpCircle },
   { name: 'Settings', href: '/settings', icon: Settings },
+];
+
+const workerNavigation = [
+  { name: 'Dashboard', href: '/worker/dashboard', icon: LayoutDashboard },
+  { name: 'My Jobs', href: '/worker/jobs', icon: Briefcase },
+  { name: 'Time Clock', href: '/timesheets/clock', icon: Clock },
+  { name: 'My Timesheets', href: '/worker/timesheets', icon: FileText },
+  { name: 'Receipts', href: '/receipts', icon: Receipt },
+  { name: 'Profile', href: '/settings', icon: User },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -55,6 +53,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const user = AuthService.getCurrentUser();
+  
+  // Determine which navigation to show based on user role
+  const navigation = user?.role === 'owner' ? ownerNavigation : workerNavigation;
 
   const handleSignOut = async () => {
     await AuthService.signOut();
@@ -84,11 +85,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
               <img src="/siteledger-logo-light.png" alt="SiteLedger" className="w-12 h-12 rounded-xl" />
-              <div>
+              <div className="flex-1">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                   SiteLedger
                 </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{user?.name || 'User'}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {user?.photoURL ? (
+                    <img 
+                      src={user.photoURL} 
+                      alt={user?.name || 'User'} 
+                      className="w-6 h-6 rounded-full object-cover border-2 border-gray-300 dark:border-gray-600"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{user?.name || 'User'}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -114,56 +128,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Link>
               );
             })}
-
-            {/* AI Features Section */}
-            <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                AI Features
-              </p>
-              {aiNavigation.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-                      isActive
-                        ? 'bg-[#FF8C42] bg-opacity-10 text-[#FF8C42] dark:bg-[#FF8C42] dark:bg-opacity-20 dark:text-[#FF9D5C] font-medium'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <item.icon className="w-5 h-5 mr-3" />
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </div>
-
-            {/* Settings Section */}
-            <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                Configuration
-              </p>
-              {settingsNavigation.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-                      isActive
-                        ? 'bg-[#007AFF] bg-opacity-10 text-[#007AFF] dark:bg-[#3b82f6] dark:bg-opacity-20 dark:text-[#3b82f6] font-medium'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <item.icon className="w-5 h-5 mr-3" />
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </div>
           </nav>
 
           {/* Sign Out */}

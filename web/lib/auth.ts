@@ -38,11 +38,13 @@ class AuthService {
         } catch (error) {
           this.currentUser = null;
         }
+      } else {
+        this.currentUser = null;
       }
     }
   }
 
-  private saveCurrentUser(user: User): void {
+  saveCurrentUser(user: User): void {
     this.currentUser = user;
     if (typeof window !== 'undefined') {
       localStorage.setItem('current_user', JSON.stringify(user));
@@ -86,7 +88,7 @@ class AuthService {
       
       return user;
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Sign in failed');
+      throw new Error(error.response?.data?.error || error.response?.data?.message || 'Sign in failed');
     }
   }
 
@@ -186,7 +188,7 @@ class AuthService {
         `${this.baseURL}/me`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('api_access_token')}`,
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
           },
         }
       );
@@ -203,7 +205,7 @@ class AuthService {
   isAuthenticated(): boolean {
     // Always reload from storage to get latest state
     this.loadCurrentUser();
-    const hasToken = typeof window !== 'undefined' && localStorage.getItem('api_access_token') !== null;
+  const hasToken = typeof window !== 'undefined' && localStorage.getItem('accessToken') !== null;
     const hasUser = this.currentUser !== null;
     
     return hasToken && hasUser;

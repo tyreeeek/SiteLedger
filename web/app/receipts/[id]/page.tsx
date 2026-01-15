@@ -74,9 +74,24 @@ export default function ReceiptDetail() {
         
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
           <h1 className="text-2xl font-bold mb-4">{receipt.vendor}</h1>
-          <p className="text-lg">Amount: ${receipt.amount}</p>
-          <p>Date: {new Date(receipt.date).toLocaleDateString()}</p>
-          {receipt.notes && <p className="mt-4">Notes: {receipt.notes}</p>}
+          <div className="space-y-2">
+            <p className="text-lg"><strong>Amount:</strong> ${receipt.amount.toFixed(2)}</p>
+            <p><strong>Date:</strong> {new Date(receipt.date).toLocaleDateString()}</p>
+            <p><strong>Category:</strong> {receipt.category}</p>
+            {receipt.jobName && <p><strong>Job:</strong> {receipt.jobName}</p>}
+            {receipt.notes && <p className="mt-4"><strong>Notes:</strong> {receipt.notes}</p>}
+          </div>
+          
+          {receipt.imageURL && (
+            <div className="mt-6">
+              <h2 className="text-lg font-semibold mb-3">Receipt Image</h2>
+              <img 
+                src={receipt.imageURL} 
+                alt={`Receipt from ${receipt.vendor}`}
+                className="max-w-full h-auto rounded-lg border border-gray-300 dark:border-gray-600"
+              />
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

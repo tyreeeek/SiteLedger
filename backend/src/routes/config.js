@@ -1,6 +1,6 @@
 /**
- * Config Routes - Secure API key delivery
- * Keys are stored in environment variables on the server
+ * Config Routes - App configuration
+ * No API keys needed - using Puter.js (free AI) and Tesseract (local OCR)
  */
 
 const express = require('express');
@@ -9,27 +9,23 @@ const { authenticate } = require('../middleware/auth');
 
 /**
  * GET /api/config/keys
- * Returns API keys for authenticated users only
- * Keys are stored server-side, never in the mobile app
+ * Returns configuration for authenticated users
+ * Note: No API keys needed - all services are free/local
  */
 router.get('/keys', authenticate, (req, res) => {
     try {
-        // Return API keys from environment variables
-        // Support both OPENROUTER_API_KEY and OPENAI_API_KEY for backward compatibility
-        const keys = {
-            ocrSpaceKey: process.env.OCR_SPACE_API_KEY || '',
-            openRouterKey: process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || '',
-            aiModel: process.env.AI_MODEL_NAME || process.env.OPENAI_MODEL || 'meta-llama/llama-3.3-70b-instruct:free'
+        // Return empty config - no API keys needed
+        // Puter.js AI is free and requires no authentication
+        // Tesseract OCR runs locally on the server
+        const config = {
+            aiProvider: 'puter',
+            ocrProvider: 'tesseract',
+            requiresApiKeys: false
         };
         
-        // Validate that keys exist
-        if (!keys.ocrSpaceKey || !keys.openRouterKey) {
-            console.warn('Warning: API keys not configured in environment');
-        }
-        
-        res.json(keys);
+        res.json(config);
     } catch (error) {
-        console.error('Error fetching config keys:', error);
+        console.error('Error fetching config:', error);
         res.status(500).json({ error: 'Failed to retrieve configuration' });
     }
 });

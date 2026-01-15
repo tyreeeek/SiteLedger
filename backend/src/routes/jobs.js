@@ -10,6 +10,21 @@ const { authenticate, requireOwner } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Helper function to format DATE columns as YYYY-MM-DD strings
+function formatDate(date) {
+    if (!date) return null;
+    // If it's already a string in YYYY-MM-DD format, return it
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return date;
+    }
+    // If it's a Date object or timestamp, format it
+    const d = new Date(date);
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // All routes require authentication
 router.use(authenticate);
 
@@ -95,8 +110,8 @@ router.get('/', async (req, res) => {
             address: j.address,
             latitude: j.latitude,
             longitude: j.longitude,
-            startDate: j.start_date,
-            endDate: j.end_date,
+            startDate: formatDate(j.start_date),
+            endDate: formatDate(j.end_date),
             status: j.status,
             notes: j.notes,
             projectValue: parseFloat(j.project_value || 0),
@@ -105,6 +120,10 @@ router.get('/', async (req, res) => {
             totalCost: j.total_cost,
             profit: j.profit,
             assignedWorkers: j.assigned_worker_ids || [],
+            geofenceEnabled: j.geofence_enabled || false,
+            geofenceLatitude: j.geofence_latitude ? parseFloat(j.geofence_latitude) : null,
+            geofenceLongitude: j.geofence_longitude ? parseFloat(j.geofence_longitude) : null,
+            geofenceRadius: j.geofence_radius ? parseFloat(j.geofence_radius) : 100,
             createdAt: j.created_at
         }));
         
@@ -155,8 +174,8 @@ router.get('/:id', async (req, res) => {
             address: j.address,
             latitude: j.latitude,
             longitude: j.longitude,
-            startDate: j.start_date,
-            endDate: j.end_date,
+            startDate: formatDate(j.start_date),
+            endDate: formatDate(j.end_date),
             status: j.status,
             notes: j.notes,
             projectValue: parseFloat(j.project_value),
@@ -193,7 +212,7 @@ router.post('/', requireOwner, [
         const {
             jobName, clientName, address, latitude, longitude,
             startDate, endDate, status, notes, projectValue, amountPaid,
-            assignedWorkers
+            assignedWorkers, geofenceEnabled, geofenceLatitude, geofenceLongitude, geofenceRadius
         } = req.body;
         
         // Validate amountPaid doesn't exceed projectValue
@@ -205,8 +224,9 @@ router.post('/', requireOwner, [
             INSERT INTO jobs (
                 owner_id, job_name, client_name, address,
                 latitude, longitude, start_date, end_date,
-                status, notes, project_value, amount_paid
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                status, notes, project_value, amount_paid,
+                geofence_enabled, geofence_latitude, geofence_longitude, geofence_radius
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
         `, [
             req.user.id,
@@ -220,7 +240,11 @@ router.post('/', requireOwner, [
             status || 'active',
             notes || '',
             projectValue,
-            amountPaid || 0
+            amountPaid || 0,
+            geofenceEnabled || false,
+            geofenceLatitude || null,
+            geofenceLongitude || null,
+            geofenceRadius || 100
         ]);
         
         const job = result.rows[0];
@@ -244,12 +268,16 @@ router.post('/', requireOwner, [
             address: job.address,
             latitude: job.latitude,
             longitude: job.longitude,
-            startDate: job.start_date,
-            endDate: job.end_date,
+            startDate: formatDate(job.start_date),
+            endDate: formatDate(job.end_date),
             status: job.status,
             notes: job.notes,
             projectValue: parseFloat(job.project_value),
             amountPaid: parseFloat(job.amount_paid),
+            geofenceEnabled: job.geofence_enabled || false,
+            geofenceLatitude: job.geofence_latitude ? parseFloat(job.geofence_latitude) : null,
+            geofenceLongitude: job.geofence_longitude ? parseFloat(job.geofence_longitude) : null,
+            geofenceRadius: job.geofence_radius ? parseFloat(job.geofence_radius) : 100,
             createdAt: job.created_at
         });
     } catch (error) {
@@ -281,7 +309,7 @@ router.put('/:id', requireOwner, async (req, res) => {
         const {
             jobName, clientName, address, latitude, longitude,
             startDate, endDate, status, notes, projectValue, amountPaid,
-            assignedWorkers
+            assignedWorkers, geofenceEnabled, geofenceLatitude, geofenceLongitude, geofenceRadius
         } = req.body;
         
         const result = await pool.query(`
@@ -296,12 +324,17 @@ router.put('/:id', requireOwner, async (req, res) => {
                 status = COALESCE($8, status),
                 notes = COALESCE($9, notes),
                 project_value = COALESCE($10, project_value),
-                amount_paid = COALESCE($11, amount_paid)
-            WHERE id = $12
+                amount_paid = COALESCE($11, amount_paid),
+                geofence_enabled = COALESCE($12, geofence_enabled),
+                geofence_latitude = $13,
+                geofence_longitude = $14,
+                geofence_radius = COALESCE($15, geofence_radius)
+            WHERE id = $16
             RETURNING *
         `, [
             jobName, clientName, address, latitude, longitude,
             startDate, endDate, status, notes, projectValue, amountPaid,
+            geofenceEnabled, geofenceLatitude, geofenceLongitude, geofenceRadius,
             req.params.id
         ]);
         
@@ -329,12 +362,16 @@ router.put('/:id', requireOwner, async (req, res) => {
             address: job.address,
             latitude: job.latitude,
             longitude: job.longitude,
-            startDate: job.start_date,
-            endDate: job.end_date,
+            startDate: formatDate(job.start_date),
+            endDate: formatDate(job.end_date),
             status: job.status,
             notes: job.notes,
             projectValue: parseFloat(job.project_value),
             amountPaid: parseFloat(job.amount_paid),
+            geofenceEnabled: job.geofence_enabled || false,
+            geofenceLatitude: job.geofence_latitude ? parseFloat(job.geofence_latitude) : null,
+            geofenceLongitude: job.geofence_longitude ? parseFloat(job.geofence_longitude) : null,
+            geofenceRadius: job.geofence_radius ? parseFloat(job.geofence_radius) : 100,
             createdAt: job.created_at
         });
     } catch (error) {

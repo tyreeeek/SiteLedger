@@ -1,56 +1,228 @@
 import Foundation
 import UIKit
 
+// MARK: - Shared Data Models
+
+/// Receipt data extracted from OCR processing
+struct ReceiptData {
+    let amount: Double
+    let vendor: String
+    let category: String
+    let date: Date
+    let confidence: Double
+}
+
 /// AI Service for receipt processing, anomaly detection, and alerts
-/// Integrates with backend API for AI features
+/// Now uses Apple Vision OCR (local, accurate) with backend fallback
 class AIService {
     static let shared = AIService()
-    private let keyManager = APIKeyManager.shared
-    
-    // MARK: - API Configuration (Fetched from APIKeyManager)
-    
-    /// OpenRouter API key - fetched securely from Remote Config
-    private var openAIApiKey: String {
-        keyManager.openRouterAPIKey
-    }
-    
-    /// OpenRouter endpoint
-    private var openAIEndpoint: String {
-        keyManager.openRouterEndpoint
-    }
-    
-    /// AI model name
-    private var model: String {
-        keyManager.aiModelName
-    }
-    
-    /// OCR.space API key - fetched securely from Remote Config
-    private var ocrSpaceApiKey: String {
-        keyManager.ocrSpaceAPIKey
-    }
-    
-    /// OCR.space endpoint
-    private var ocrSpaceEndpoint: String {
-        keyManager.ocrSpaceEndpoint
-    }
     
     // Allow public initialization for ViewModels
     init() {}
     
-    // MARK: - Receipt Processing with OCR.space
+    // MARK: - Receipt Processing with Local Vision OCR
     
-    /// Process receipt image: OCR.space extracts text, then regex parses it
-    /// Note: OpenRouter AI is only for insights/chat, not receipt parsing
+    /// Process receipt image using Apple Vision framework (local, fast, accurate)
+    /// Falls back to backend OCR if local processing fails
     func processReceiptImage(_ image: UIImage) async throws -> ReceiptData {
-        // Step 1: Extract text from receipt using OCR.space
-        let ocrText = try await extractTextWithOCRSpace(image)
+        print("🔍 Processing receipt image with Apple Vision OCR (local)")
         
-        // Step 2: Parse with regex (no AI needed for basic receipt data)
-        let data = parseReceiptWithRegex(ocrText)
-        return data
+        do {
+            // Try local Vision OCR first (faster and more accurate)
+            let text = try await VisionOCRService.shared.extractText(from: image)
+            print("✅ Vision OCR extracted text (\(text.count) chars)")
+            
+            let result = VisionOCRService.shared.parseReceiptText(text)
+            print("✅ Parsed receipt: vendor=\(result.vendor), amount=\(result.amount)")
+            
+            // Upload image to backend for storage (but don't wait for OCR)
+            Task {
+                do {
+                    let imageUrl = try await uploadReceiptImage(image)
+                    print("✅ Image uploaded to backend: \(imageUrl)")
+                } catch {
+                    print("⚠️ Failed to upload image to backend (non-critical): \(error)")
+                }
+            }
+            
+            return result
+            
+        } catch {
+            print("⚠️ Local Vision OCR failed: \(error.localizedDescription)")
+            print("🔄 Falling back to backend OCR...")
+            
+            // Fallback to backend OCR
+            let imageUrl = try await uploadReceiptImage(image)
+            print("✅ Image uploaded: \(imageUrl)")
+            return try await processReceiptImageURL(imageUrl)
+        }
     }
     
+    /// Upload receipt image to backend and return the URL
+    private func uploadReceiptImage(_ image: UIImage) async throws -> String {
+        print("📤 Uploading image to backend...")
+        
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            print("❌ Failed to convert image to JPEG")
+            throw AIServiceError.invalidImage
+        }
+        
+        print("📦 Image data size: \(imageData.count) bytes")
+        
+        let boundary = "Boundary-\(UUID().uuidString)"
+        let endpoint = "\(APIService.shared.apiBaseURL)/upload/receipt"
+        guard let url = URL(string: endpoint) else {
+            print("❌ Invalid upload URL: \(endpoint)")
+            throw AIServiceError.apiError("Invalid backend URL")
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        // Add auth token
+        if let token = UserDefaults.standard.string(forKey: "api_access_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            print("🔑 Auth token added to upload request")
+        } else {
+            print("⚠️ No auth token found for upload")
+        }
+        
+        // Build multipart form data
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"receipt.jpg\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        request.httpBody = body
+        
+        print("📤 Sending upload request to: \(endpoint)")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("❌ Invalid response type from upload")
+            throw AIServiceError.apiError("Invalid response from backend")
+        }
+        
+        print("📥 Upload response status: \(httpResponse.statusCode)")
+        
+        guard httpResponse.statusCode == 200 else {
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("❌ Upload error response: \(responseString)")
+            }
+            throw AIServiceError.apiError("Image upload failed: \(httpResponse.statusCode)")
+        }
+        
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let imageURL = json["url"] as? String else {
+            print("❌ Failed to parse upload response")
+            throw AIServiceError.parseError("Invalid upload response")
+        }
+        
+        print("✅ Image uploaded successfully: \(imageURL)")
+        return imageURL
+    }
+    
+    /// Process receipt image from URL using backend OCR
+    func processReceiptImageURL(_ imageUrl: String) async throws -> ReceiptData {
+        print("🔍 Starting OCR for image: \(imageUrl)")
+        
+        // Call backend OCR endpoint
+        let endpoint = "\(APIService.shared.apiBaseURL)/receipts/ocr"
+        guard let url = URL(string: endpoint) else {
+            print("❌ Invalid backend URL: \(endpoint)")
+            throw AIServiceError.apiError("Invalid backend URL")
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Add auth token if available
+        if let token = UserDefaults.standard.string(forKey: "api_access_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            print("🔑 Auth token added to request")
+        } else {
+            print("⚠️ No auth token found")
+        }
+        
+        let payload: [String: Any] = ["imageUrl": imageUrl]
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        
+        print("📤 Sending OCR request to: \(endpoint)")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("❌ Invalid response type")
+            throw AIServiceError.apiError("Invalid response from backend")
+        }
+        
+        print("📥 OCR response status: \(httpResponse.statusCode)")
+        
+        guard httpResponse.statusCode == 200 else {
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("❌ Backend OCR error response: \(responseString)")
+            }
+            throw AIServiceError.apiError("Backend OCR error: \(httpResponse.statusCode)")
+        }
+        
+        // Parse JSON response
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            print("❌ Failed to parse JSON response")
+            throw AIServiceError.parseError("Invalid JSON response")
+        }
+        
+        print("📦 OCR response JSON: \(json)")
+        
+        guard let success = json["success"] as? Bool, success else {
+            let errorMsg = (json["error"] as? String) ?? "Unknown error"
+            print("❌ OCR failed: \(errorMsg)")
+            throw AIServiceError.parseError("OCR failed: \(errorMsg)")
+        }
+        
+        guard let ocrData = json["data"] as? [String: Any] else {
+            print("❌ No data in OCR response")
+            throw AIServiceError.parseError("No data in OCR response")
+        }
+        
+        // Parse backend response
+        let vendor = (ocrData["vendor"] as? String) ?? "Unknown"
+        let amount = (ocrData["amount"] as? Double) ?? (ocrData["amount"] as? NSNumber)?.doubleValue ?? 0.0
+        let category = (ocrData["category"] as? String) ?? "Other"
+        let confidence = (ocrData["confidence"] as? Double) ?? (ocrData["confidence"] as? NSNumber)?.doubleValue ?? 0.5
+        
+        print("✅ Parsed OCR data - Vendor: '\(vendor)', Amount: \(amount), Category: '\(category)', Confidence: \(confidence)")
+        
+        // Parse date
+        let date: Date
+        if let dateString = ocrData["date"] as? String {
+            let formatter = ISO8601DateFormatter()
+            date = formatter.date(from: dateString) ?? Date()
+            print("📅 Parsed date: \(date) from string: \(dateString)")
+        } else {
+            date = Date()
+            print("⚠️ No date in response, using current date")
+        }
+        
+        let result = ReceiptData(
+            amount: amount,
+            vendor: vendor,
+            category: category,
+            date: date,
+            confidence: confidence
+        )
+        
+        print("✅ OCR complete - returning result")
+        return result
+    }
+    
+    // MARK: - Utility Methods for Receipt Analysis
+    // MARK: - Utility Methods for Receipt Analysis
+    
     /// Parse receipt text using regex patterns to extract vendor, amount, date
+    /// Note: This is kept for backward compatibility but not actively used since backend handles OCR
     private func parseReceiptWithRegex(_ text: String) -> ReceiptData {
         var amount: Double = 0.0
         var vendor: String = "Unknown"
@@ -151,197 +323,6 @@ class AIService {
             category: category,
             date: date,
             confidence: finalConfidence
-        )
-    }
-    
-    /// Extract text from receipt image using OCR.space API
-    private func extractTextWithOCRSpace(_ image: UIImage) async throws -> String {
-        // Compress image to stay under 1MB limit (OCR.space free tier limit is 1024KB)
-        var imageData = image.jpegData(compressionQuality: 0.8)
-        var compressionQuality: CGFloat = 0.8
-        
-        // Keep reducing quality until we're under 1MB (1024 * 1024 bytes)
-        while let data = imageData, data.count > 1_000_000 && compressionQuality > 0.1 {
-            compressionQuality -= 0.1
-            imageData = image.jpegData(compressionQuality: compressionQuality)
-        }
-        
-        guard let finalImageData = imageData, finalImageData.count > 0 else {
-            throw AIServiceError.invalidImage
-        }
-        
-        // If still too large after max compression, resize the image
-        var processedImageData = finalImageData
-        if finalImageData.count > 1_000_000 {
-            // Resize image to reduce file size
-            let maxDimension: CGFloat = 1500
-            let scale = min(maxDimension / image.size.width, maxDimension / image.size.height, 1.0)
-            let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-            
-            UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
-            image.draw(in: CGRect(origin: .zero, size: newSize))
-            let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
-            UIGraphicsEndImageContext()
-            
-            guard let resized = resizedImage,
-                  let resizedData = resized.jpegData(compressionQuality: 0.7) else {
-                throw AIServiceError.invalidImage
-            }
-            processedImageData = resizedData
-        }
-        
-        let boundary = "Boundary-\(UUID().uuidString)"
-        guard let ocrURL = URL(string: ocrSpaceEndpoint) else {
-            throw AIServiceError.apiError("Invalid OCR.space endpoint configuration")
-        }
-        var request = URLRequest(url: ocrURL)
-        request.httpMethod = "POST"
-        request.addValue(ocrSpaceApiKey, forHTTPHeaderField: "apikey")
-        request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        
-        var body = Data()
-        
-        // Add image data
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"receipt.jpg\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
-        body.append(processedImageData)
-        body.append("\r\n".data(using: .utf8)!)
-        
-        // Add language parameter (English)
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
-        body.append("eng\r\n".data(using: .utf8)!)
-        
-        // Add OCR engine (2 = advanced engine with better accuracy)
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"OCREngine\"\r\n\r\n".data(using: .utf8)!)
-        body.append("2\r\n".data(using: .utf8)!)
-        
-        // Add scale parameter for better quality
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"scale\"\r\n\r\n".data(using: .utf8)!)
-        body.append("true\r\n".data(using: .utf8)!)
-        
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
-        
-        request.httpBody = body
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw AIServiceError.apiError("Invalid response from OCR.space")
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            throw AIServiceError.apiError("OCR.space API error: \(httpResponse.statusCode)")
-        }
-        
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw AIServiceError.parseError("Invalid JSON from OCR.space")
-        }
-        
-        // Check for errors
-        if let errorMessage = json["ErrorMessage"] as? [String], !errorMessage.isEmpty {
-            throw AIServiceError.apiError("OCR.space error: \(errorMessage.joined(separator: ", "))")
-        }
-        
-        // Extract parsed text
-        guard let parsedResults = json["ParsedResults"] as? [[String: Any]],
-              let firstResult = parsedResults.first,
-              let parsedText = firstResult["ParsedText"] as? String else {
-            throw AIServiceError.parseError("Could not extract text from OCR.space response")
-        }
-        
-        guard !parsedText.isEmpty else {
-            throw AIServiceError.parseError("OCR.space returned empty text - image may be too blurry")
-        }
-        
-        return parsedText
-    }
-    
-    /// Analyze text with OpenRouter AI
-    private func analyzeTextWithAI(_ prompt: String) async throws -> String {
-        guard let aiURL = URL(string: openAIEndpoint) else {
-            throw AIServiceError.apiError("Invalid OpenRouter endpoint configuration")
-        }
-        var request = URLRequest(url: aiURL)
-        request.httpMethod = "POST"
-        request.addValue("Bearer \(openAIApiKey)", forHTTPHeaderField: "Authorization")
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let payload: [String: Any] = [
-            "model": model,
-            "messages": [
-                [
-                    "role": "system",
-                    "content": "You are a receipt parsing assistant. Extract structured data from receipt text and respond only with valid JSON."
-                ],
-                [
-                    "role": "user",
-                    "content": prompt
-                ]
-            ],
-            "max_tokens": 1024,
-            "temperature": 0.1 // Low temperature for consistent, factual responses
-        ]
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw AIServiceError.apiError("Failed to call OpenRouter API")
-        }
-        
-        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let choices = json["choices"] as? [[String: Any]],
-           let message = choices.first?["message"] as? [String: Any],
-           let content = message["content"] as? String {
-            return content
-        }
-        
-        throw AIServiceError.parseError("Could not extract response from OpenRouter")
-    }
-    
-    /// Parse AI response into ReceiptData
-    private func parseReceiptResponse(_ response: String) throws -> ReceiptData {
-        // Extract JSON from response (may be wrapped in markdown code blocks)
-        let jsonString: String
-        if let jsonStart = response.range(of: "{"),
-           let jsonEnd = response.range(of: "}", options: .backwards) {
-            jsonString = String(response[jsonStart.lowerBound..<jsonEnd.upperBound])
-        } else {
-            jsonString = response
-        }
-        
-        guard let jsonData = jsonString.data(using: .utf8),
-              let json = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
-            throw AIServiceError.parseError("Invalid JSON response")
-        }
-        
-        let vendor = (json["vendor"] as? String) ?? "Unknown"
-        let amount = (json["amount"] as? NSNumber)?.doubleValue ?? 0.0
-        let category = (json["category"] as? String) ?? "Other"
-        let confidence = (json["confidence"] as? NSNumber)?.doubleValue ?? 0.5
-        let dateString = json["date"] as? String
-        
-        // Parse date
-        let date: Date
-        if let dateStr = dateString {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            date = formatter.date(from: dateStr) ?? Date()
-        } else {
-            date = Date()
-        }
-        
-        return ReceiptData(
-            amount: amount,
-            vendor: vendor,
-            category: category,
-            date: date,
-            confidence: confidence
         )
     }
     
@@ -701,116 +682,15 @@ class AIService {
         }
     }
     
-    // MARK: - Document Processing (Phase 8)
-    
-    /// Process document image: OCR + AI analysis for contracts, invoices, estimates, etc.
-    func processDocumentImage(_ image: UIImage) async throws -> DocumentProcessingResult {
-        // Step 1: Extract text from document using OCR.space
-        let ocrText = try await extractTextWithOCRSpace(image)
-        
-        // Step 2: Analyze extracted text with AI to classify and extract data
-        let prompt = """
-        Analyze this document text and extract information in JSON format:
-        {
-            "documentType": "contract|invoice|estimate|permit|receipt|photo|blueprint|other",
-            "title": "descriptive title for the document",
-            "extractedData": {
-                "amount": "total amount if applicable",
-                "date": "date in YYYY-MM-DD format",
-                "clientName": "client or vendor name",
-                "projectDescription": "brief description",
-                "contractNumber": "contract/invoice number if present",
-                "terms": "payment terms or key terms",
-                "expiryDate": "expiry date if applicable"
-            },
-            "summary": "2-3 sentence summary of the document",
-            "confidence": "confidence score 0-1",
-            "flags": ["list of any issues: low_quality, missing_signature, expired, incomplete"]
-        }
-        
-        Document text:
-        \(ocrText)
-        
-        Guidelines:
-        - Identify document type based on keywords (e.g., "Agreement", "Invoice", "Estimate", "Permit")
-        - Extract all monetary amounts, dates, names, and key terms
-        - Generate a clear, concise summary
-        - Flag any quality issues or missing critical information
-        - If a field cannot be determined, set to null or empty
-        
-        Respond ONLY with valid JSON, no additional text.
-        """
-        
-        let response = try await analyzeTextWithAI(prompt)
-        let result = try parseDocumentResponse(response)
-        return result
-    }
-    
-    /// Parse AI response for document analysis
-    private func parseDocumentResponse(_ response: String) throws -> DocumentProcessingResult {
-        // Remove markdown code blocks if present
-        var jsonString = response
-        if jsonString.contains("```json") {
-            jsonString = jsonString.replacingOccurrences(of: "```json", with: "")
-            jsonString = jsonString.replacingOccurrences(of: "```", with: "")
-        }
-        jsonString = jsonString.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        guard let data = jsonString.data(using: .utf8) else {
-            throw AIServiceError.parseError("Failed to convert response to data")
-        }
-        
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        guard let json = json else {
-            throw AIServiceError.parseError("Invalid JSON structure")
-        }
-        
-        // Parse document type
-        let documentTypeString = json["documentType"] as? String ?? "other"
-        let documentType = Document.DocumentCategory(rawValue: documentTypeString) ?? .other
-        
-        // Parse extracted data
-        let extractedDataDict = json["extractedData"] as? [String: Any] ?? [:]
-        var extractedData: [String: String] = [:]
-        for (key, value) in extractedDataDict {
-            if let stringValue = value as? String {
-                extractedData[key] = stringValue
-            } else if let numberValue = value as? NSNumber {
-                extractedData[key] = numberValue.stringValue
-            }
-        }
-        
-        // Parse other fields
-        let title = json["title"] as? String ?? "Untitled Document"
-        let summary = json["summary"] as? String ?? ""
-        let confidence = json["confidence"] as? Double ?? 0.5
-        let flags = json["flags"] as? [String] ?? []
-        
-        return DocumentProcessingResult(
-            documentType: documentType,
-            title: title,
-            extractedData: extractedData,
-            summary: summary,
-            confidence: confidence,
-            flags: flags
-        )
-    }
-    
     // MARK: - Helper Methods
     
     private func saveAlert(_ alert: Alert) async throws {
         // TODO: Save via API when alerts feature is implemented
     }
     
-    // MARK: - Data Models (Public for ViewModels)
-    
-    struct ReceiptData {
-        let amount: Double
-        let vendor: String
-        let category: String
-        let date: Date
-        let confidence: Double
-    }
+    // MARK: - Document Processing (Stub - Not Implemented)
+    // These are placeholder structs for backward compatibility
+    // Document processing feature is not yet implemented with backend API
     
     struct DocumentData {
         let summary: String
@@ -819,12 +699,17 @@ class AIService {
     }
     
     struct DocumentProcessingResult {
-        let documentType: Document.DocumentCategory
+        let documentType: String
         let title: String
         let extractedData: [String: String]
         let summary: String
         let confidence: Double
         let flags: [String]
+    }
+    
+    /// Document processing not yet implemented with backend API
+    func processDocumentImage(_ image: UIImage) async throws -> DocumentProcessingResult {
+        throw AIServiceError.apiError("Document processing feature not yet implemented")
     }
 }
 
@@ -844,9 +729,9 @@ enum AIServiceError: LocalizedError {
         case .apiError(let message):
             return message
         case .parseError(let message):
-            return "Failed to parse AI response: \(message)"
+            return "Failed to parse response: \(message)"
         case .invalidCredentials:
-            return "Invalid OpenAI API credentials"
+            return "Invalid API credentials"
         case .rateLimited:
             return "API rate limit exceeded. Please try again later."
         }

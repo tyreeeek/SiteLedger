@@ -30,8 +30,16 @@ const initBrevoClient = () => {
 const sendEmail = async (to, subject, htmlContent, textContent = null) => {
     const apiInstance = initBrevoClient();
     
-    // Use SMTP_USER as verified sender
-    const fromEmail = process.env.SMTP_USER || 'siteledger@siteledger.ai';
+    // Use SMTP_FROM (custom domain) if set, fallback to SMTP_USER (Brevo relay)
+    // Strip quotes and angle brackets from SMTP_FROM if present
+    let fromEmail = process.env.SMTP_FROM;
+    if (fromEmail) {
+        // Extract email from "Name <email@domain.com>" format
+        const emailMatch = fromEmail.match(/<(.+?)>/);
+        fromEmail = emailMatch ? emailMatch[1] : fromEmail.replace(/[<">]/g, '').trim();
+    } else {
+        fromEmail = process.env.SMTP_USER || 'siteledger@siteledger.ai';
+    }
     const fromName = 'SiteLedger';
     
     if (!apiInstance) {
@@ -54,6 +62,7 @@ const sendEmail = async (to, subject, htmlContent, textContent = null) => {
     try {
         const sendSmtpEmail = new brevo.SendSmtpEmail();
         sendSmtpEmail.sender = { name: fromName, email: fromEmail };
+        sendSmtpEmail.replyTo = { email: 'siteledger@siteledger.ai', name: fromName }; // Ensure replies go to our domain
         sendSmtpEmail.to = [{ email: to }];
         sendSmtpEmail.subject = subject;
         sendSmtpEmail.htmlContent = htmlContent;
@@ -98,15 +107,14 @@ const sendPasswordResetEmail = async (email, name, resetToken) => {
                 </div>
                 <div class="content">
                     <p>Hi ${name || 'there'},</p>
-                    <p>We received a request to reset your SiteLedger password. Follow the instructions below to reset your password:</p>
+                    <p>We received a request to reset your SiteLedger password. Use the code below to reset your password:</p>
                     
                     <div class="instructions">
                         <p style="margin: 0 0 10px 0;"><strong>📱 Steps to Reset Your Password:</strong></p>
-                        <div class="step">Open the SiteLedger app on your device</div>
-                        <div class="step">Tap on "Forgot Password?" from the login screen</div>
+                        <div class="step">Go to the password reset page (app or web)</div>
                         <div class="step">Enter your email address: <strong>${email}</strong></div>
-                        <div class="step">Tap "Continue to Reset Password"</div>
                         <div class="step">Copy and paste the reset code below</div>
+                        <div class="step">Enter your new password</div>
                     </div>
                     
                     <div class="token-box">
@@ -127,6 +135,91 @@ const sendPasswordResetEmail = async (email, name, resetToken) => {
                 </div>
                 <div class="footer">
                     <p>© 2025 SiteLedger. All rights reserved.</p>
+                    <p>This is an automated email. Please do not reply.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    return await sendEmail(email, subject, htmlContent);
+};
+
+/**
+ * Send password reset email for WEB (with clickable link)
+ */
+const sendPasswordResetWebEmail = async (email, name, resetToken) => {
+    const resetUrl = `https://siteledger.ai/reset-password?token=${resetToken}`;
+    const subject = 'Reset Your SiteLedger Password';
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #00968f, #00756f); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+                .button-container { text-align: center; margin: 30px 0; }
+                .reset-button { 
+                    display: inline-block;
+                    background: #00968f; 
+                    color: white !important; 
+                    text-decoration: none; 
+                    padding: 15px 40px; 
+                    border-radius: 8px; 
+                    font-weight: bold;
+                    font-size: 16px;
+                    box-shadow: 0 4px 6px rgba(0, 150, 143, 0.3);
+                    transition: background 0.3s;
+                }
+                .reset-button:hover { background: #00756f; }
+                .link-box { 
+                    background: #fff; 
+                    padding: 15px; 
+                    border: 1px solid #ddd; 
+                    border-radius: 4px; 
+                    margin: 20px 0; 
+                    word-break: break-all;
+                    font-size: 12px;
+                    color: #666;
+                }
+                .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+                .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🔐 Reset Your Password</h1>
+                </div>
+                <div class="content">
+                    <p>Hi ${name || 'there'},</p>
+                    <p>We received a request to reset your SiteLedger password. Click the button below to create a new password:</p>
+                    
+                    <div class="button-container">
+                        <a href="${resetUrl}" class="reset-button">Reset My Password</a>
+                    </div>
+                    
+                    <p style="text-align: center; color: #666; font-size: 14px;">
+                        Button not working? Copy and paste this link into your browser:
+                    </p>
+                    <div class="link-box">${resetUrl}</div>
+                    
+                    <div class="warning">
+                        <p style="margin: 0;"><strong>⏰ This link will expire in 1 hour</strong></p>
+                    </div>
+                    
+                    <p>If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+                    
+                    <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+                    
+                    <p style="font-size: 12px; color: #666;">
+                        For security reasons, this reset link can only be used once. If you need to reset your password again, please submit a new request.
+                    </p>
+                </div>
+                <div class="footer">
+                    <p>© 2026 SiteLedger. All rights reserved.</p>
                     <p>This is an automated email. Please do not reply.</p>
                 </div>
             </div>
@@ -293,6 +386,7 @@ You can change your password in the app settings.
 module.exports = {
     sendEmail,
     sendPasswordResetEmail,
+    sendPasswordResetWebEmail,
     sendWorkerInvite,
     sendPasswordResetNotification
 };

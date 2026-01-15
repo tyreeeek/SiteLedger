@@ -38,8 +38,12 @@ class ReceiptsViewModel: ObservableObject {
     }
     
     func createReceipt(_ receipt: Receipt) async throws {
+        print("📤 ReceiptsViewModel: Creating receipt via API...")
+        print("📊 Receipt data - Amount: \(receipt.amount ?? 0), Vendor: \(receipt.vendor ?? "nil"), Owner: \(receipt.ownerID ?? "nil")")
         try await apiService.createReceipt(receipt)
+        print("✅ ReceiptsViewModel: Receipt created, reloading list...")
         await loadReceipts()
+        print("✅ ReceiptsViewModel: Receipts reloaded")
     }
     
     func updateReceipt(_ receipt: Receipt) async throws {

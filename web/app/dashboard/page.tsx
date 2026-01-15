@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import APIService from '@/lib/api';
 import AuthService from '@/lib/auth';
 import DashboardLayout from '@/components/dashboard-layout';
+import AuthGuard from '@/components/auth-guard';
 import { calculateProfit, remainingBalance } from '@/types/models';
 import {
   Briefcase,
@@ -20,54 +21,37 @@ import {
   Activity,
 } from 'lucide-react';
 
+// Disable Next.js page caching for dashboard (auth-protected)
+export const dynamic = 'force-dynamic';
+
 export default function Dashboard() {
   const router = useRouter();
-  const [isAuthChecked, setIsAuthChecked] = useState(false);
-
-  useEffect(() => {
-    // Check authentication on mount
-    if (!AuthService.isAuthenticated()) {
-      router.push('/auth/signin');
-    } else {
-      setIsAuthChecked(true);
-    }
-  }, [router]);
+  const user = AuthService.getCurrentUser();
 
   const { data: jobs = [], isLoading: jobsLoading } = useQuery({
     queryKey: ['jobs'],
     queryFn: () => APIService.fetchJobs(),
-    enabled: isAuthChecked, // Only fetch when auth is confirmed
+    enabled: true, // AuthGuard blocks rendering until auth is confirmed
   });
 
   const { data: receipts = [], isLoading: receiptsLoading } = useQuery({
     queryKey: ['receipts'],
     queryFn: () => APIService.fetchReceipts(),
-    enabled: isAuthChecked,
+    enabled: true,
   });
 
   const { data: timesheets = [], isLoading: timesheetsLoading } = useQuery({
     queryKey: ['timesheets'],
     queryFn: () => APIService.fetchTimesheets(),
-    enabled: isAuthChecked,
+    enabled: true,
   });
 
+  // Only fetch workers for owners (workers don't have permission)
   const { data: workers = [] } = useQuery({
     queryKey: ['workers'],
     queryFn: () => APIService.fetchWorkers(),
-    enabled: isAuthChecked,
+    enabled: user?.role === 'owner',
   });
-
-  // Show loading while checking auth
-  if (!isAuthChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Verifying authentication...</p>
-        </div>
-      </div>
-    );
-  }
 
   const isLoading = jobsLoading || receiptsLoading || timesheetsLoading;
 
@@ -91,7 +75,6 @@ export default function Dashboard() {
     }).format(value);
   };
 
-  const user = AuthService.getCurrentUser();
   const today = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -101,20 +84,43 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+            <p className="text-gray-600 dark:text-gray-400">Verifying session...</p>
           </div>
         </div>
-      </DashboardLayout>
+      }>
+        <AuthGuard>
+          <DashboardLayout>
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="text-center">
+                <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+              </div>
+            </div>
+          </DashboardLayout>
+        </AuthGuard>
+      </Suspense>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Verifying session...</p>
+        </div>
+      </div>
+    }>
+      <AuthGuard>
+        <DashboardLayout>
+          <div className="fixed bottom-2 right-2 z-50 text-[10px] font-mono text-gray-500 bg-white/80 border border-gray-200 rounded px-2 py-1">
+            build: 2025-12-31-authguard-v2
+          </div>
+          <div className="space-y-6">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white shadow-lg">
           <h1 className="text-3xl lg:text-4xl font-bold mb-2">
@@ -328,7 +334,9 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+        </DashboardLayout>
+      </AuthGuard>
+    </Suspense>
   );
 }
 

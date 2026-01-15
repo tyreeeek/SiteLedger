@@ -6,9 +6,34 @@
     "auditLog": "/Users/zia/Desktop/SiteLedger/backend/logs/.19307d78ec89b598280ee1c0b719372e02914c14-audit.json",
     "files": [
         {
-            "date": 1766698731543,
-            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/application-2025-12-25.log",
-            "hash": "17cdb7218a8b64d37c5229041a164d7c3553aef0d48531b33d90baea8a570279"
+            "date": 1767290265684,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/application-2026-01-01.log",
+            "hash": "5e1b3d325a86365e1c63d39cd956f58129ae878a2568a89c84b762b5a2dc767e"
+        },
+        {
+            "date": 1767558605859,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/application-2026-01-04.log",
+            "hash": "6ff3c4c8ca9564df6423812a40657880013a473f3557b131454ae35dae125e38"
+        },
+        {
+            "date": 1767826412686,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/application-2026-01-07.log",
+            "hash": "5215556e9c1e77bda63ef2ad7ba30c9e3c133d57e5d17e32ccc573a869a10560"
+        },
+        {
+            "date": 1768013340555,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/application-2026-01-09.log",
+            "hash": "ca7916b1d3ebb7b8d2768f05271c2f95bf3c797c843a8ecb8bcf3113cef31817"
+        },
+        {
+            "date": 1768444932515,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/application-2026-01-14.log",
+            "hash": "4ee667377e97eca3fa70c30546dde1c870d35e9823a2422fa999b9043b920b47"
+        },
+        {
+            "date": 1768492680399,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/application-2026-01-15.log",
+            "hash": "9af5ee00ffb2ed6177385c17deb4aea9fd4b96bc859d7279f340ab0b1f04579c"
         }
     ],
     "hashType": "sha256"

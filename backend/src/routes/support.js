@@ -25,7 +25,7 @@ router.post('/contact', authenticate, [
   try {
     const { name, email, subject, message } = req.body;
 
-    // Send email to support team at siteledger@siteledger.ai
+    // Send email to support team at support@siteledger.ai
     const emailSubject = `Support Request: ${subject}`;
     const emailBody = `
       <h2>New Support Request</h2>
@@ -39,12 +39,12 @@ router.post('/contact', authenticate, [
     `;
 
     await emailService.sendEmail(
-      'siteledger@siteledger.ai',
+      'support@siteledger.ai',
       emailSubject,
       emailBody
     );
 
-    console.log('Support request sent to siteledger@siteledger.ai', {
+    console.log('Support request sent to support@siteledger.ai', {
       userId: req.user.id,
       userEmail: req.user.email,
       subject,

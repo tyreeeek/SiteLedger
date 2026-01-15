@@ -67,7 +67,7 @@ struct DashboardView: View {
                                         .font(DesignSystem.TextStyle.title3)
                                         .foregroundColor(DesignSystem.Colors.textPrimary)
                                     
-                                    ForEach(viewModel.jobs.prefix(5).filter { $0.status == .active }) { job in
+                                    ForEach(viewModel.jobs.filter { $0.status == .active && $0.id != nil }.prefix(5)) { job in
                                         NavigationLink(destination: JobDetailView(job: job)) {
                                             JobRowView(job: job)
                                         }
@@ -169,7 +169,7 @@ struct JobRowView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: DesignSystem.Spacing.tiny) {
-                Text(job.startDate.formatted(date: .abbreviated, time: .omitted))
+                Text(job.startDate.localDateString)
                     .font(DesignSystem.TextStyle.bodyBold)
                     .foregroundColor(DesignSystem.Colors.textSecondary)
                 Text(job.status.rawValue.capitalized)
@@ -221,7 +221,7 @@ struct RecentReceiptRowView: View {
                 Text(receipt.vendor ?? "Unknown Vendor")
                     .font(DesignSystem.TextStyle.bodySecondary)
                     .foregroundColor(DesignSystem.Colors.textPrimary)
-                Text((receipt.date ?? Date()).formatted(date: .abbreviated, time: .omitted))
+                Text((receipt.date ?? Date()).localDateString)
                     .font(DesignSystem.TextStyle.caption)
                     .foregroundColor(DesignSystem.Colors.textSecondary)
             }

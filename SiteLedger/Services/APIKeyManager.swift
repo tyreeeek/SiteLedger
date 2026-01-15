@@ -1,27 +1,25 @@
 import Foundation
 
-/// API Key Manager - Fetches keys securely from backend
+/// API Key Manager - Configuration from backend
+/// Note: No API keys needed - using Puter.js (free AI) and Tesseract (local OCR)
 class APIKeyManager {
     static let shared = APIKeyManager()
     
     private var isConfigured = false
-    private var cachedOCRKey: String?
-    private var cachedOpenRouterKey: String?
-    private var cachedAIModel: String?
     
     private init() {}
     
-    /// Configure by fetching keys from backend (requires authenticated user)
+    /// Configure by fetching config from backend (requires authenticated user)
     func configure() async {
-        await fetchKeysFromBackend()
+        await fetchConfigFromBackend()
         isConfigured = true
     }
     
-    private func fetchKeysFromBackend() async {
+    private func fetchConfigFromBackend() async {
         // Only fetch if user is authenticated
         guard let token = UserDefaults.standard.string(forKey: "api_access_token") else {
             #if DEBUG
-            print("[APIKeyManager] No auth token found, skipping key fetch")
+            print("[APIKeyManager] No auth token found, skipping config fetch")
             #endif
             return
         }
@@ -37,7 +35,7 @@ class APIKeyManager {
         }
         
         #if DEBUG
-        print("[APIKeyManager] Fetching keys from: \(url)")
+        print("[APIKeyManager] Fetching config from: \(url)")
         #endif
         
         var request = URLRequest(url: url)
@@ -64,62 +62,36 @@ class APIKeyManager {
                 return
             }
             
-            struct KeysResponse: Codable {
-                let ocrSpaceKey: String
-                let openRouterKey: String
-                let aiModel: String
+            struct ConfigResponse: Codable {
+                let aiProvider: String
+                let ocrProvider: String
+                let requiresApiKeys: Bool
             }
             
-            let keys = try JSONDecoder().decode(KeysResponse.self, from: data)
-            cachedOCRKey = keys.ocrSpaceKey
-            cachedOpenRouterKey = keys.openRouterKey
-            cachedAIModel = keys.aiModel
+            let config = try JSONDecoder().decode(ConfigResponse.self, from: data)
             
             #if DEBUG
-            print("[APIKeyManager] ✅ Keys configured - OCR: \(keys.ocrSpaceKey.prefix(10))..., AI: \(keys.openRouterKey.prefix(10))...")
+            print("[APIKeyManager] ✅ Config loaded - AI: \(config.aiProvider), OCR: \(config.ocrProvider), No API keys needed: \(!config.requiresApiKeys)")
             #endif
         } catch {
             #if DEBUG
-            print("[APIKeyManager] Error fetching keys: \(error)")
+            print("[APIKeyManager] Error fetching config: \(error)")
             #endif
         }
     }
     
-    // MARK: - AI API Keys (fetched from backend, with fallbacks)
-    
-    var openRouterAPIKey: String {
-        cachedOpenRouterKey ?? ""
-    }
-    
-    var ocrSpaceAPIKey: String {
-        cachedOCRKey ?? ""
-    }
-    
-    var openRouterEndpoint: String {
-        return "https://openrouter.ai/api/v1/chat/completions"
-    }
-    
-    var ocrSpaceEndpoint: String {
-        return "https://api.ocr.space/parse/image"
-    }
-    
-    var aiModelName: String {
-        cachedAIModel ?? "meta-llama/llama-3.3-70b-instruct:free"
-    }
+    // MARK: - Configuration (no API keys needed)
     
     var isFullyConfigured: Bool {
-        return isConfigured && cachedOCRKey != nil
+        return isConfigured
     }
     
     func refresh() async {
-        await fetchKeysFromBackend()
+        await fetchConfigFromBackend()
         isConfigured = true
     }
     
     func clearCache() {
-        cachedOCRKey = nil
-        cachedOpenRouterKey = nil
-        cachedAIModel = nil
         isConfigured = false
     }
 }

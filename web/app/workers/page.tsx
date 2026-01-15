@@ -7,7 +7,7 @@ import APIService from '@/lib/api';
 import AuthService from '@/lib/auth';
 import toast from '@/lib/toast';
 import DashboardLayout from '@/components/dashboard-layout';
-import { Users, Loader2, Search, Plus, DollarSign, Mail, Phone, AlertCircle, Briefcase, Edit2, X } from 'lucide-react';
+import { Users, Loader2, Search, Plus, DollarSign, Mail, Phone, AlertCircle, Briefcase, Edit2, X, Trash2 } from 'lucide-react';
 
 export default function Workers() {
   const router = useRouter();
@@ -91,6 +91,21 @@ export default function Workers() {
     } catch (error) {
       toast.error('Failed to update worker. Please try again.');
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteWorker = async (workerId: string, workerName: string) => {
+    if (!confirm(`Are you sure you want to delete "${workerName}"? This action cannot be undone.`)) {
+      return;
+    }
+    
+    try {
+      await APIService.deleteWorker(workerId);
+      toast.success('Worker deleted successfully');
+      // Refresh workers list
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete worker');
     }
   };
 
@@ -221,6 +236,16 @@ export default function Workers() {
                         aria-label="Edit worker"
                       >
                         <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteWorker(worker.id, worker.name);
+                        }}
+                        className="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition"
+                        aria-label="Delete worker"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                       <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg">
                         <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />

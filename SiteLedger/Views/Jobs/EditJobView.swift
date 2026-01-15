@@ -21,6 +21,12 @@ struct EditJobView: View {
     @State private var errorMessage = ""
     @State private var showDeleteConfirmation = false
     
+    // Geofence fields
+    @State private var geofenceEnabled: Bool
+    @State private var geofenceLatitude: String
+    @State private var geofenceLongitude: String
+    @State private var geofenceRadius: String
+    
     init(job: Job) {
         self.job = job
         _jobName = State(initialValue: job.jobName)
@@ -32,6 +38,10 @@ struct EditJobView: View {
         _endDate = State(initialValue: job.endDate ?? Date())
         _notes = State(initialValue: job.notes)
         _status = State(initialValue: job.status)
+        _geofenceEnabled = State(initialValue: job.geofenceEnabled ?? false)
+        _geofenceLatitude = State(initialValue: job.geofenceLatitude.map { String($0) } ?? "")
+        _geofenceLongitude = State(initialValue: job.geofenceLongitude.map { String($0) } ?? "")
+        _geofenceRadius = State(initialValue: job.geofenceRadius.map { String($0) } ?? "100")
     }
     
     var body: some View {
@@ -184,6 +194,60 @@ struct EditJobView: View {
                             }
                         }
                         
+                        // Geofence Time Tracking
+                        ModernCard(shadow: true) {
+                            VStack(spacing: ModernDesign.Spacing.lg) {
+                                ModernSectionHeader(
+                                    title: "Geofence Time Tracking",
+                                    subtitle: "Optional - Require workers to be at job site to clock in"
+                                )
+                                
+                                VStack(spacing: ModernDesign.Spacing.md) {
+                                    // Enable toggle
+                                    Toggle(isOn: $geofenceEnabled) {
+                                        HStack(spacing: ModernDesign.Spacing.xs) {
+                                            Image(systemName: "location.circle.fill")
+                                                .foregroundColor(ModernDesign.Colors.primary)
+                                            Text("Enable Geofence Validation")
+                                                .font(ModernDesign.Typography.body)
+                                                .foregroundColor(ModernDesign.Colors.textPrimary)
+                                        }
+                                    }
+                                    .tint(ModernDesign.Colors.primary)
+                                    
+                                    if geofenceEnabled {
+                                        VStack(spacing: ModernDesign.Spacing.md) {
+                                            ModernTextField(
+                                                placeholder: "Latitude (e.g., 37.7749)",
+                                                text: $geofenceLatitude,
+                                                icon: "mappin.circle.fill",
+                                                keyboardType: .decimalPad
+                                            )
+                                            
+                                            ModernTextField(
+                                                placeholder: "Longitude (e.g., -122.4194)",
+                                                text: $geofenceLongitude,
+                                                icon: "mappin.circle.fill",
+                                                keyboardType: .decimalPad
+                                            )
+                                            
+                                            ModernTextField(
+                                                placeholder: "Radius in meters (default: 100)",
+                                                text: $geofenceRadius,
+                                                icon: "circle.dashed",
+                                                keyboardType: .decimalPad
+                                            )
+                                            
+                                            Text("Workers must be within this radius to clock in. 100 meters ≈ 328 feet")
+                                                .font(ModernDesign.Typography.caption)
+                                                .foregroundColor(ModernDesign.Colors.textSecondary)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
                         // Notes
                         ModernCard(shadow: true) {
                             VStack(spacing: ModernDesign.Spacing.lg) {
@@ -309,6 +373,26 @@ struct EditJobView: View {
             return
         }
         
+        // Validate geofence fields if enabled
+        var geofenceLat: Double? = nil
+        var geofenceLng: Double? = nil
+        var geofenceRad: Double? = nil
+        
+        if geofenceEnabled {
+            guard let lat = Double(geofenceLatitude),
+                  let lng = Double(geofenceLongitude),
+                  let rad = Double(geofenceRadius),
+                  rad > 0 else {
+                HapticsManager.shared.error()
+                errorMessage = "Please enter valid geofence coordinates and radius"
+                showError = true
+                return
+            }
+            geofenceLat = lat
+            geofenceLng = lng
+            geofenceRad = rad
+        }
+        
         isLoading = true
         showError = false
         
@@ -322,28 +406,21 @@ struct EditJobView: View {
         updatedJob.endDate = endDate
         updatedJob.status = status
         updatedJob.notes = notes
-        
-        // Build updates dictionary for API
-        let dateFormatter = ISO8601DateFormatter()
-        var updates: [String: Any] = [
-            "jobName": jobName,
-            "clientName": clientName,
-            "address": address,
-            "projectValue": projectValueDouble,
-            "amountPaid": amountPaidDouble,
-            "startDate": dateFormatter.string(from: startDate),
-            "status": status.rawValue,
-            "notes": notes
-        ]
-        
-        // Always include endDate since user may have edited it
-        updates["endDate"] = dateFormatter.string(from: endDate)
+        updatedJob.geofenceEnabled = geofenceEnabled ? true : nil
+        updatedJob.geofenceLatitude = geofenceLat
+        updatedJob.geofenceLongitude = geofenceLng
+        updatedJob.geofenceRadius = geofenceRad
         
         Task {
             do {
-                try await viewModel.updateJob(updatedJob, with: updates)
+                // Use APIService.updateJob(_ job: Job) directly - it handles date formatting correctly
+                try await APIService.shared.updateJob(updatedJob)
                 await MainActor.run {
                     HapticsManager.shared.success()
+                    // Reload jobs to reflect changes
+                    if let userID = authService.currentUser?.id {
+                        viewModel.loadJobs(userID: userID)
+                    }
                     dismiss()
                 }
             } catch {

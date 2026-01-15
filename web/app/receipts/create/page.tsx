@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import APIService from '@/lib/api';
 import AuthService from '@/lib/auth';
-import AIService from '@/lib/ai';
 import toast from '@/lib/toast';
 import DashboardLayout from '@/components/dashboard-layout';
 import { Receipt, Loader2, Upload, X, CheckCircle, AlertCircle, Sparkles, Brain } from 'lucide-react';
@@ -23,6 +22,13 @@ export default function CreateReceipt() {
     notes: '',
     category: 'materials',
   });
+  
+  const [ocrDebugInfo, setOcrDebugInfo] = useState<string>('');
+  
+  // DEBUG: Log every formData change
+  useEffect(() => {
+    console.log('📊 FORM DATA CHANGED:', formData);
+  }, [formData]);
   
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -76,50 +82,95 @@ export default function CreateReceipt() {
       reader.onloadend = () => {
         const result = reader.result as string;
         setImagePreview(result);
-        // Auto-process with AI if available
-        processImageWithAI(result);
+        // Auto-process with AI if available - pass the file directly
+        processImageWithAI(result, file);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const processImageWithAI = async (imageData: string) => {
+  const processImageWithAI = async (imageData: string, file: File) => {
     setIsProcessingAI(true);
     
     try {
-      // First, upload the image to get a URL
-      if (!imageFile) return;
-      
-      const imageURL = await APIService.uploadFile(imageFile, 'receipt');
-      
-      // Call backend OCR endpoint
-      const ocrResult = await APIService.processReceiptOCR(imageURL);
-      
-      if (ocrResult.success && ocrResult.data) {
-        // Calculate confidence
-        const confidence = ocrResult.data.confidence || 0.85;
-        setAiConfidence(confidence);
-        
-        // Auto-fill form fields from OCR data
-        if (ocrResult.data.vendor) {
-          setFormData(prev => ({ ...prev, vendor: ocrResult.data.vendor }));
-        }
-        if (ocrResult.data.amount && ocrResult.data.amount > 0) {
-          setFormData(prev => ({ ...prev, amount: ocrResult.data.amount.toString() }));
-        }
-        if (ocrResult.data.date) {
-          setFormData(prev => ({ ...prev, date: ocrResult.data.date }));
-        }
-        if (ocrResult.data.category) {
-          setFormData(prev => ({ ...prev, category: ocrResult.data.category }));
-        }
-        
-        toast.success('Receipt scanned successfully!');
+      // Upload the image first
+      if (!file) {
+        toast.error('No image file selected');
+        setIsProcessingAI(false);
+        return;
       }
+      
+      toast.success('📤 Uploading receipt...');
+      const imageURL = await APIService.uploadFile(file, 'receipt');
+      console.log('📤 Image uploaded successfully:', imageURL);
+      
+      // Try OCR to extract data
+      toast.success('🔍 Scanning receipt with AI...');
+      try {
+        const ocrResult = await APIService.processReceiptOCR(imageURL);
+        console.log('🔍 RAW OCR RESULT:', ocrResult);
+        console.log('🔍 OCR SUCCESS:', ocrResult.success);
+        console.log('🔍 OCR DATA:', ocrResult.data);
+        
+        if (ocrResult.success && ocrResult.data) {
+          const { vendor, amount, date, category } = ocrResult.data;
+          
+          console.log('📝 Extracted vendor:', vendor);
+          console.log('📝 Extracted amount:', amount);
+          console.log('📝 Extracted date:', date);
+          console.log('📝 Extracted category:', category);
+          
+          // Update form data with all extracted values at once
+          const updates: any = {};
+          if (vendor && vendor !== 'Unknown Vendor' && vendor.trim() !== '') {
+            updates.vendor = vendor.trim();
+          }
+          if (amount && amount > 0) {
+            updates.amount = amount.toString();
+          }
+          if (date) {
+            updates.date = date;
+          }
+          if (category) {
+            updates.category = category;
+          }
+          
+          console.log('📊 Applying updates to form:', updates);
+          setFormData(prev => ({ ...prev, ...updates }));
+          
+          const hasData = updates.vendor || updates.amount;
+          if (hasData) {
+            toast.success('✨ Receipt scanned successfully! Review and submit.');
+            setAiConfidence(ocrResult.data.confidence || 0.85);
+          } else {
+            toast.info('⚠️ Could not read receipt. Please enter details manually.');
+            setAiConfidence(null);
+          }
+        } else {
+          console.log('❌ OCR did not return success or data');
+          toast.info('⚠️ Could not read receipt. Please enter details manually.');
+          setAiConfidence(null);
+        }
+      } catch (ocrError) {
+        console.error('❌ OCR ERROR:', ocrError);
+        toast.info('⚠️ OCR failed. Please enter details manually.');
+        setAiConfidence(null);
+      }
+      
     } catch (error: any) {
-      // Fail gracefully - user can still enter data manually
-      console.warn('OCR processing failed:', error);
-      toast.error('Could not scan receipt automatically. Please enter details manually.');
+      console.error('❌ Upload ERROR:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      const errorMsg = error.message || 'Failed to upload image';
+      toast.error(`❌ Upload failed: ${errorMsg}. Please try again.`);
+      
+      // Clear the failed image so user can try again
+      setImageFile(null);
+      setImagePreview(null);
     } finally {
       setIsProcessingAI(false);
     }
@@ -133,20 +184,11 @@ export default function CreateReceipt() {
   const validate = () => {
     const newErrors: any = {};
     
-    if (!formData.vendor.trim()) {
-      newErrors.vendor = 'Vendor name is required';
-    }
-    
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      newErrors.amount = 'Valid amount is required';
-    }
-    
-    if (!formData.date) {
-      newErrors.date = 'Date is required';
-    }
+    // No validation - all fields are optional
+    // Users can submit with whatever information they have
     
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return true; // Always pass validation
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -273,32 +315,36 @@ export default function CreateReceipt() {
                   </div>
                 </div>
               )}
+              
+              {/* DEBUG INFO */}
+              {ocrDebugInfo && (
+                <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
+                  <p className="text-xs font-mono text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-all">
+                    {ocrDebugInfo}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Vendor */}
             <div>
               <label htmlFor="vendor" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Vendor Name *
+                Vendor Name
               </label>
               <input
                 id="vendor"
                 type="text"
                 value={formData.vendor}
                 onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#3b82f6] focus:border-transparent outline-none text-gray-900 dark:text-white bg-white dark:bg-gray-700 ${
-                  errors.vendor ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                }`}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#3b82f6] focus:border-transparent outline-none text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                 placeholder="e.g., Home Depot, Lowe's"
               />
-              {errors.vendor && (
-                <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.vendor}</p>
-              )}
             </div>
 
             {/* Amount */}
             <div>
               <label htmlFor="amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Amount *
+                Amount
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-2 text-gray-500 dark:text-gray-400">$</span>
@@ -308,21 +354,16 @@ export default function CreateReceipt() {
                   step="0.01"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className={`w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#3b82f6] focus:border-transparent outline-none text-gray-900 dark:text-white bg-white dark:bg-gray-700 ${
-                    errors.amount ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                  }`}
+                  className="w-full pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#3b82f6] focus:border-transparent outline-none text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                   placeholder="0.00"
                 />
               </div>
-              {errors.amount && (
-                <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.amount}</p>
-              )}
             </div>
 
             {/* Date */}
             <div>
               <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Date *
+                Date
               </label>
               <input
                 id="date"

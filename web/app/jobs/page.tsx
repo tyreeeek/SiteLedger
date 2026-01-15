@@ -40,10 +40,12 @@ export default function Jobs() {
     enabled: isAuthChecked,
   });
 
+  // Only owners can fetch workers list
+  const user = AuthService.getCurrentUser();
   const { data: workers = [] } = useQuery({
     queryKey: ['workers'],
     queryFn: () => APIService.fetchWorkers(),
-    enabled: isAuthChecked,
+    enabled: isAuthChecked && user?.role === 'owner',
   });
 
   if (!isAuthChecked) {

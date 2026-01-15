@@ -49,7 +49,8 @@ const s3 = new AWS.S3({
 });
 
 const BUCKET = process.env.SPACES_BUCKET || 'siteledger-files';
-const CDN_ENDPOINT = process.env.SPACES_CDN_ENDPOINT || `https://${BUCKET}.nyc3.cdn.digitaloceanspaces.com`;
+// Use direct Space URL (CDN subdomain has DNS issues)
+const CDN_ENDPOINT = process.env.SPACES_CDN_ENDPOINT || `https://${BUCKET}.nyc3.digitaloceanspaces.com`;
 
 // Allowed file extensions (whitelist approach)
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.pdf'];
@@ -109,9 +110,8 @@ router.post('/receipt', upload.single('file'), async (req, res) => {
                 fs.mkdirSync(dir, { recursive: true });
             }
             fs.writeFileSync(localPath, req.file.buffer);
-            // Use proper production URL
-            const baseURL = isProduction ? 'https://api.siteledger.ai' : 'http://localhost:3000';
-            const fileURL = `${baseURL}/uploads/${fileName}`;
+            // Always use production URL (no localhost in production-ready logs)
+            const fileURL = `https://api.siteledger.ai/uploads/${fileName}`;
             console.log(`✅ Receipt saved locally: ${fileURL}`);
             return res.json({ url: fileURL });
         }
@@ -157,9 +157,8 @@ router.post('/document', upload.single('file'), async (req, res) => {
                 fs.mkdirSync(dir, { recursive: true });
             }
             fs.writeFileSync(localPath, req.file.buffer);
-            // Use proper production URL
-            const baseURL = isProduction ? 'https://api.siteledger.ai' : 'http://localhost:3000';
-            const fileURL = `${baseURL}/uploads/${fileName}`;
+            // Always use production URL (no localhost in production-ready logs)
+            const fileURL = `https://api.siteledger.ai/uploads/${fileName}`;
             console.log(`✅ Document saved locally: ${fileURL}`);
             return res.json({ url: fileURL });
         }
@@ -207,9 +206,8 @@ router.post('/profile', upload.single('file'), async (req, res) => {
                 fs.mkdirSync(dir, { recursive: true });
             }
             fs.writeFileSync(localPath, req.file.buffer);
-            // Use proper production URL with cache busting
-            const baseURL = isProduction ? 'https://api.siteledger.ai' : 'http://localhost:3000';
-            const fileURL = `${baseURL}/uploads/${fileName}?v=${Date.now()}`;
+            // Always use production URL with cache busting (no localhost in production-ready logs)
+            const fileURL = `https://api.siteledger.ai/uploads/${fileName}?v=${Date.now()}`;
             console.log(`✅ Profile photo saved locally: ${fileURL}`);
             return res.json({ url: fileURL });
         }
