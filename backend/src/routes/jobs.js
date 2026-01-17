@@ -269,6 +269,24 @@ router.post('/', requireOwner, [
                     VALUES ($1, $2)
                     ON CONFLICT DO NOTHING
                 `, [workerId, job.id]);
+                
+                // Create notification for assigned worker
+                try {
+                    await pool.query(`
+                        INSERT INTO notifications (user_id, type, title, message, data)
+                        VALUES ($1, $2, $3, $4, $5)
+                    `, [
+                        workerId,
+                        'job_assignment',
+                        'New Job Assignment',
+                        `You have been assigned to: ${jobName}`,
+                        JSON.stringify({ jobId: job.id, jobName, clientName })
+                    ]);
+                    console.log(`✅ Notification created for worker ${workerId} on job ${job.id}`);
+                } catch (notifError) {
+                    console.error('Failed to create notification:', notifError);
+                    // Don't fail job creation if notification fails
+                }
             }
         }
 
@@ -354,15 +372,42 @@ router.put('/:id', requireOwner, async (req, res) => {
 
         // Update worker assignments if provided
         if (assignedWorkers !== undefined) {
+            // Get current assignments to detect new ones
+            const currentAssignments = await pool.query(
+                'SELECT worker_id FROM worker_job_assignments WHERE job_id = $1',
+                [job.id]
+            );
+            const currentWorkerIds = currentAssignments.rows.map(r => r.worker_id);
+            
             // Remove existing assignments
             await pool.query('DELETE FROM worker_job_assignments WHERE job_id = $1', [job.id]);
 
-            // Add new assignments
+            // Add new assignments and create notifications for newly assigned workers
             for (const workerId of assignedWorkers) {
                 await pool.query(`
                     INSERT INTO worker_job_assignments (worker_id, job_id)
                     VALUES ($1, $2)
                 `, [workerId, job.id]);
+                
+                // Only notify if this is a new assignment (not already assigned)
+                if (!currentWorkerIds.includes(workerId)) {
+                    try {
+                        await pool.query(`
+                            INSERT INTO notifications (user_id, type, title, message, data)
+                            VALUES ($1, $2, $3, $4, $5)
+                        `, [
+                            workerId,
+                            'job_assignment',
+                            'New Job Assignment',
+                            `You have been assigned to: ${jobName}`,
+                            JSON.stringify({ jobId: job.id, jobName, clientName })
+                        ]);
+                        console.log(`✅ Notification created for newly assigned worker ${workerId} on job ${job.id}`);
+                    } catch (notifError) {
+                        console.error('Failed to create notification:', notifError);
+                        // Don't fail job update if notification fails
+                    }
+                }
             }
         }
 

@@ -577,6 +577,24 @@ actor APIService {
         return (response.email, response.tempPassword)
     }
     
+    // MARK: - Notifications Endpoints
+    
+    func fetchNotifications(limit: Int = 20, offset: Int = 0) async throws -> NotificationsResponse {
+        return try await request("GET", path: "/notifications?limit=\(limit)&offset=\(offset)")
+    }
+    
+    func markNotificationAsRead(id: String) async throws {
+        let _: EmptyResponse = try await request("PUT", path: "/notifications/\(id)/read")
+    }
+    
+    func markAllNotificationsAsRead() async throws {
+        let _: EmptyResponse = try await request("PUT", path: "/notifications/mark-all-read")
+    }
+    
+    func deleteNotification(id: String) async throws {
+        let _: EmptyResponse = try await request("DELETE", path: "/notifications/\(id)")
+    }
+    
     // MARK: - Upload Endpoints
     
     func uploadReceipt(imageData: Data, filename: String) async throws -> UploadResponse {
