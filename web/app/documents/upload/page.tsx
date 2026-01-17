@@ -11,6 +11,7 @@ import { ArrowLeft, Loader2, Upload, FileText } from 'lucide-react';
 export default function UploadDocument() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [jobs, setJobs] = useState<any[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
@@ -66,9 +67,13 @@ export default function UploadDocument() {
         return;
       }
 
+      setUploadProgress(10);
+      toast.info('📤 Uploading file...');
+
       // 1. Upload file using APIService
       const fileURL = await APIService.uploadFile(selectedFile, 'document');
       console.log('File uploaded successfully, URL:', fileURL);
+      setUploadProgress(60);
 
       // 2. Create document record
       const documentData = {
@@ -80,13 +85,20 @@ export default function UploadDocument() {
       };
 
       console.log('Creating document record with data:', documentData);
+      setUploadProgress(90);
       await APIService.createDocument(documentData);
-      toast.success('Document uploaded successfully!');
-      router.push('/documents');
+      setUploadProgress(100);
+      toast.success('✅ Document uploaded successfully!');
+      
+      // Small delay to show 100% before redirecting
+      setTimeout(() => {
+        router.push('/documents');
+      }, 500);
     } catch (error: any) {
       console.error('Document upload error:', error);
-      const errorMessage = error.message || 'Failed to upload document. Please try again.';
-      toast.error(errorMessage);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to upload document. Please try again.';
+      toast.error(`❌ ${errorMessage}`);
+      setUploadProgress(0);
     } finally {
       setIsLoading(false);
     }
@@ -106,23 +118,24 @@ export default function UploadDocument() {
           </button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Upload Document</h1>
-            <p className="text-gray-600 mt-1">Add contracts, invoices, or files</p>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Add contracts, invoices, or files</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm space-y-6">
           {/* File Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               File <span className="text-red-500">*</span>
             </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition">
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-blue-500 dark:hover:border-blue-400 transition">
               <input
                 type="file"
                 onChange={handleFileSelect}
                 className="hidden"
                 id="file-upload"
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                capture="environment"
               />
               <label
                 htmlFor="file-upload"
@@ -130,18 +143,18 @@ export default function UploadDocument() {
               >
                 {selectedFile ? (
                   <>
-                    <FileText className="w-12 h-12 text-blue-600" />
-                    <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <FileText className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedFile.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
-                    <p className="text-xs text-blue-600 hover:underline">Click to change</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline">Click to change</p>
                   </>
                 ) : (
                   <>
-                    <Upload className="w-12 h-12 text-gray-400" />
-                    <p className="text-sm font-medium text-gray-900">Click to upload</p>
-                    <p className="text-xs text-gray-500">
+                    <Upload className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">Click to upload</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       PDF, DOC, XLS, JPG, PNG (Max 10MB)
                     </p>
                   </>
@@ -152,7 +165,7 @@ export default function UploadDocument() {
 
           {/* File Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Document Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -161,20 +174,20 @@ export default function UploadDocument() {
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g., Contract - Kitchen Renovation"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
             />
           </div>
 
           {/* File Type */}
           <div>
-            <label htmlFor="doc-type" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="doc-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Document Type
             </label>
             <select
               id="doc-type"
               value={formData.fileType}
               onChange={(e) => setFormData({ ...formData, fileType: e.target.value as 'pdf' | 'image' | 'other' })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
               aria-label="Select document type"
             >
               <option value="pdf">PDF Document</option>
@@ -185,14 +198,14 @@ export default function UploadDocument() {
 
           {/* Job Association (Optional) */}
           <div>
-            <label htmlFor="doc-job" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="doc-job" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Associated Job (Optional)
             </label>
             <select
               id="doc-job"
               value={formData.jobID}
               onChange={(e) => setFormData({ ...formData, jobID: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
               aria-label="Select associated job"
             >
               <option value="">No job association</option>
@@ -206,7 +219,7 @@ export default function UploadDocument() {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Notes
             </label>
             <textarea
@@ -214,16 +227,36 @@ export default function UploadDocument() {
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Additional notes about this document..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
             />
           </div>
+
+          {/* Upload Progress Bar */}
+          {isLoading && uploadProgress > 0 && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-700 dark:text-gray-300 font-medium">
+                  {uploadProgress < 60 ? 'Uploading file...' : 
+                   uploadProgress < 90 ? 'Creating document...' : 
+                   'Finalizing...'}
+                </span>
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">{uploadProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-full transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="flex gap-4 pt-4">
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
               disabled={isLoading}
             >
               Cancel
