@@ -6,11 +6,6 @@
     "auditLog": "/Users/zia/Desktop/SiteLedger/backend/logs/.19307d78ec89b598280ee1c0b719372e02914c14-audit.json",
     "files": [
         {
-            "date": 1767290265684,
-            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/application-2026-01-01.log",
-            "hash": "5e1b3d325a86365e1c63d39cd956f58129ae878a2568a89c84b762b5a2dc767e"
-        },
-        {
             "date": 1767558605859,
             "name": "/Users/zia/Desktop/SiteLedger/backend/logs/application-2026-01-04.log",
             "hash": "6ff3c4c8ca9564df6423812a40657880013a473f3557b131454ae35dae125e38"
@@ -34,6 +29,11 @@
             "date": 1768492680399,
             "name": "/Users/zia/Desktop/SiteLedger/backend/logs/application-2026-01-15.log",
             "hash": "9af5ee00ffb2ed6177385c17deb4aea9fd4b96bc859d7279f340ab0b1f04579c"
+        },
+        {
+            "date": 1768622859738,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/application-2026-01-16.log",
+            "hash": "69fede9cb56fb161e2f799767422ab698666423b6c92123e0ba259c7d14e4a8f"
         }
     ],
     "hashType": "sha256"

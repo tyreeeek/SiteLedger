@@ -32,6 +32,8 @@ export default function CreateReceipt() {
   
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [multipleImages, setMultipleImages] = useState<{ file: File; preview: string }[]>([]);
+  const [isStitchingMode, setIsStitchingMode] = useState(false);
   const [errors, setErrors] = useState<any>({});
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [aiConfidence, setAiConfidence] = useState<number | null>(null);
@@ -77,16 +79,107 @@ export default function CreateReceipt() {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      if (isStitchingMode) {
+        // Multi-shot mode: add to array
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const preview = reader.result as string;
+          setMultipleImages(prev => [...prev, { file, preview }]);
+          toast.success(`Image ${multipleImages.length + 1} captured. Add more or finalize.`);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Single-shot mode: replace
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          setImagePreview(result);
+          // Auto-process with AI if available - pass the file directly
+          processImageWithAI(result, file);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  const stitchImagesVertically = async (images: { file: File; preview: string }[]): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas context not available'));
+        return;
+      }
+
+      const imageElements: HTMLImageElement[] = [];
+      let loadedCount = 0;
+
+      // Load all images
+      images.forEach(({ preview }) => {
+        const img = new Image();
+        img.onload = () => {
+          imageElements.push(img);
+          loadedCount++;
+          
+          if (loadedCount === images.length) {
+            // All images loaded - stitch them
+            const maxWidth = Math.max(...imageElements.map(img => img.width));
+            const totalHeight = imageElements.reduce((sum, img) => sum + img.height, 0);
+
+            canvas.width = maxWidth;
+            canvas.height = totalHeight;
+
+            let yOffset = 0;
+            imageElements.forEach(img => {
+              ctx.drawImage(img, 0, yOffset, img.width, img.height);
+              yOffset += img.height;
+            });
+
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const stitchedFile = new File([blob], 'stitched-receipt.jpg', { type: 'image/jpeg' });
+                resolve(stitchedFile);
+              } else {
+                reject(new Error('Failed to create stitched image'));
+              }
+            }, 'image/jpeg', 0.95);
+          }
+        };
+        img.src = preview;
+      });
+    });
+  };
+
+  const finalizeStitching = async () => {
+    if (multipleImages.length === 0) {
+      toast.error('No images to stitch');
+      return;
+    }
+
+    toast.info('🧵 Stitching images together...');
+    
+    try {
+      const stitchedFile = await stitchImagesVertically(multipleImages);
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
+        setImageFile(stitchedFile);
         setImagePreview(result);
-        // Auto-process with AI if available - pass the file directly
-        processImageWithAI(result, file);
+        setMultipleImages([]);
+        setIsStitchingMode(false);
+        toast.success('✅ Long receipt stitched! Processing with AI...');
+        processImageWithAI(result, stitchedFile);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(stitchedFile);
+    } catch (error) {
+      console.error('Stitching error:', error);
+      toast.error('Failed to stitch images. Please try again.');
     }
+  };
+
+  const removeMultiImage = (index: number) => {
+    setMultipleImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const processImageWithAI = async (imageData: string, file: File) => {
@@ -179,6 +272,9 @@ export default function CreateReceipt() {
   const removeImage = () => {
     setImageFile(null);
     setImagePreview(null);
+    setMultipleImages([]);
+    setIsStitchingMode(false);
+    setAiConfidence(null);
   };
 
   const validate = () => {
@@ -236,27 +332,88 @@ export default function CreateReceipt() {
             {/* Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Receipt Image
+                Receipt Image {isStitchingMode && <span className="text-blue-600 dark:text-blue-400">(Multi-Shot Mode)</span>}
               </label>
               
-              {!imagePreview ? (
-                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-[#007AFF] dark:hover:border-[#3b82f6] hover:bg-blue-50 dark:hover:bg-gray-700 transition">
-                  <div className="text-center">
-                    <Upload className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
-                    <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Click to upload receipt image</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">PNG, JPG up to 10MB</p>
+              {/* Multi-shot images preview */}
+              {multipleImages.length > 0 && (
+                <div className="mb-4 space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Receipt className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                        {multipleImages.length} image{multipleImages.length > 1 ? 's' : ''} captured
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={finalizeStitching}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                    >
+                      Finalize & Stitch
+                    </button>
                   </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                  />
-                </label>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {multipleImages.map((img, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={img.preview}
+                          alt={`Receipt part ${idx + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeMultiImage(idx)}
+                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition opacity-0 group-hover:opacity-100"
+                          aria-label="Remove image"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <span className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 text-white text-xs rounded">
+                          Part {idx + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {!imagePreview && multipleImages.length === 0 ? (
+                <div className="space-y-3">
+                  {/* Single Shot Upload */}
+                  <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-[#007AFF] dark:hover:border-[#3b82f6] hover:bg-blue-50 dark:hover:bg-gray-700 transition">
+                    <div className="text-center">
+                      <Upload className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+                      <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Click to upload receipt image</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">PNG, JPG up to 10MB</p>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                    />
+                  </label>
+                  
+                  {/* Long Receipt Scanner Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsStitchingMode(true);
+                      toast.info('📸 Multi-shot mode activated! Capture multiple photos of your long receipt.');
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition font-medium"
+                  >
+                    <Receipt className="w-5 h-5" />
+                    <span>Long Receipt Scanner</span>
+                    <Sparkles className="w-4 h-4" />
+                  </button>
+                </div>
               ) : (
                 <div className="relative">
                   <img
-                    src={imagePreview}
+                    src={imagePreview!}
                     alt="Receipt preview"
                     className="w-full h-64 object-contain bg-gray-50 rounded-lg"
                   />

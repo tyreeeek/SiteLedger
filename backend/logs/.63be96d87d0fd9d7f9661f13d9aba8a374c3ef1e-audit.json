@@ -49,6 +49,11 @@
             "date": 1768492680823,
             "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2026-01-15.log",
             "hash": "dc718a81dd8754e1f99fedd87277ca32b647dbcd04c65423b183aade55d78c12"
+        },
+        {
+            "date": 1768622860123,
+            "name": "/Users/zia/Desktop/SiteLedger/backend/logs/error-2026-01-16.log",
+            "hash": "fb8c87c8bf89f0b357a907fd88a5d6e545ef20b4e6b7f9135fa441452e13f70a"
         }
     ],
     "hashType": "sha256"
