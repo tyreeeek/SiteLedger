@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import AuthService from '@/lib/auth';
 import APIService from '@/lib/api';
 import DashboardLayout from '@/components/dashboard-layout';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, X, ZoomIn } from 'lucide-react';
 
 export default function ReceiptDetail() {
   const router = useRouter();
@@ -13,6 +13,7 @@ export default function ReceiptDetail() {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [receipt, setReceipt] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFullImage, setShowFullImage] = useState(false);
 
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
@@ -85,14 +86,43 @@ export default function ReceiptDetail() {
           {receipt.imageURL && (
             <div className="mt-6">
               <h2 className="text-lg font-semibold mb-3">Receipt Image</h2>
-              <img 
-                src={receipt.imageURL} 
-                alt={`Receipt from ${receipt.vendor}`}
-                className="max-w-full h-auto rounded-lg border border-gray-300 dark:border-gray-600"
-              />
+              <div className="relative group cursor-pointer" onClick={() => setShowFullImage(true)}>
+                <img 
+                  src={receipt.imageURL} 
+                  alt={`Receipt from ${receipt.vendor}`}
+                  className="max-w-full h-auto rounded-lg border border-gray-300 dark:border-gray-600 transition-transform hover:scale-[1.02]"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg">
+                    <ZoomIn className="w-6 h-6 text-gray-900 dark:text-white" />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
+
+        {/* Full Screen Image Modal */}
+        {showFullImage && receipt.imageURL && (
+          <div 
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setShowFullImage(false)}
+          >
+            <button
+              onClick={() => setShowFullImage(false)}
+              className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition"
+              aria-label="Close"
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+            <img
+              src={receipt.imageURL}
+              alt={`Receipt from ${receipt.vendor}`}
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

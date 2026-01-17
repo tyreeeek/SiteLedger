@@ -7,7 +7,7 @@ import APIService from '@/lib/api';
 import AuthService from '@/lib/auth';
 import toast from '@/lib/toast';
 import DashboardLayout from '@/components/dashboard-layout';
-import { FileText, Loader2, ArrowLeft, Download, Trash2, File, Image as ImageIcon, Calendar, Briefcase, AlertCircle } from 'lucide-react';
+import { FileText, Loader2, ArrowLeft, Download, Trash2, File, Image as ImageIcon, Calendar, Briefcase, AlertCircle, ZoomIn, X } from 'lucide-react';
 
 export default function DocumentDetail() {
   const router = useRouter();
@@ -15,6 +15,7 @@ export default function DocumentDetail() {
   const queryClient = useQueryClient();
   const documentId = params.id as string;
   const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [showFullImage, setShowFullImage] = useState(false);
 
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
@@ -150,11 +151,18 @@ export default function DocumentDetail() {
         {isImage && document.fileURL && (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Preview</h2>
-            <img
-              src={document.fileURL}
-              alt={document.title || 'Document'}
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700"
-            />
+            <div className="relative group cursor-pointer" onClick={() => setShowFullImage(true)}>
+              <img
+                src={document.fileURL}
+                alt={document.title || 'Document'}
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 transition-transform hover:scale-[1.01]"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-gray-800 rounded-full p-4 shadow-lg">
+                  <ZoomIn className="w-8 h-8 text-gray-900 dark:text-white" />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -221,6 +229,28 @@ export default function DocumentDetail() {
             </div>
           </div>
         </div>
+
+        {/* Full Screen Image Modal */}
+        {showFullImage && isImage && document.fileURL && (
+          <div 
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
+            onClick={() => setShowFullImage(false)}
+          >
+            <button
+              onClick={() => setShowFullImage(false)}
+              className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10"
+              aria-label="Close fullscreen"
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+            <img
+              src={document.fileURL}
+              alt={document.title || 'Document'}
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
