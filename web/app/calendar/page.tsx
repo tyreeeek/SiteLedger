@@ -8,12 +8,20 @@ import { ArrowLeft, Calendar as CalendarIcon, Clock, Users, Briefcase } from 'lu
 
 export default function Calendar() {
   const router = useRouter();
+  const user = AuthService.getCurrentUser();
 
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
       router.push('/auth/signin');
+    } else if (user?.role === 'worker') {
+      router.replace('/worker/dashboard');
     }
-  }, []);
+  }, [router, user]);
+
+  // Block workers from accessing this page
+  if (user?.role === 'worker') {
+    return null;
+  }
 
   return (
     <DashboardLayout>

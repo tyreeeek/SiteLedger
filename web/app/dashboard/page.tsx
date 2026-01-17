@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import APIService from '@/lib/api';
 import AuthService from '@/lib/auth';
 import DashboardLayout from '@/components/dashboard-layout';
 import AuthGuard from '@/components/auth-guard';
+import OwnerOnly from '@/components/owner-only';
 import { calculateProfit, remainingBalance } from '@/types/models';
 import {
   Briefcase,
@@ -27,6 +28,18 @@ export const dynamic = 'force-dynamic';
 export default function Dashboard() {
   const router = useRouter();
   const user = AuthService.getCurrentUser();
+
+  // Block workers from accessing owner dashboard
+  useEffect(() => {
+    if (user?.role === 'worker') {
+      router.replace('/worker/dashboard');
+    }
+  }, [user, router]);
+
+  // Early return for workers
+  if (user?.role === 'worker') {
+    return null;
+  }
 
   const { data: jobs = [], isLoading: jobsLoading } = useQuery({
     queryKey: ['jobs'],

@@ -11,6 +11,7 @@ import { Users, Loader2, Search, Plus, DollarSign, Mail, Phone, AlertCircle, Bri
 
 export default function Workers() {
   const router = useRouter();
+  const user = AuthService.getCurrentUser();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingWorker, setEditingWorker] = useState<any>(null);
@@ -27,10 +28,17 @@ export default function Workers() {
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
       router.push('/auth/signin');
+    } else if (user?.role === 'worker') {
+      router.replace('/worker/dashboard');
     } else {
       setIsAuthChecked(true);
     }
-  }, [router]);
+  }, [router, user]);
+
+  // Block workers from accessing this page
+  if (user?.role === 'worker') {
+    return null;
+  }
 
   const { data: workers = [], isLoading } = useQuery({
     queryKey: ['workers'],

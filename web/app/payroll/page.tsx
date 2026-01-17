@@ -22,6 +22,7 @@ interface WorkerPayroll {
 
 export default function Payroll() {
   const router = useRouter();
+  const user = AuthService.getCurrentUser();
   const [workers, setWorkers] = useState<any[]>([]);
   const [timesheets, setTimesheets] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
@@ -42,10 +43,17 @@ export default function Payroll() {
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
       router.push('/auth/signin');
+    } else if (user?.role === 'worker') {
+      router.replace('/worker/dashboard');
     } else {
       loadPayrollData();
     }
-  }, []);
+  }, [router, user]);
+
+  // Block workers from accessing this page
+  if (user?.role === 'worker') {
+    return null;
+  }
 
   const loadPayrollData = async () => {
     try {

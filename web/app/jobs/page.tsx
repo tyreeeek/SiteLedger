@@ -13,14 +13,22 @@ export default function Jobs() {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const user = AuthService.getCurrentUser();
 
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
       router.push('/auth/signin');
+    } else if (user?.role === 'worker') {
+      router.replace('/worker/jobs');
     } else {
       setIsAuthChecked(true);
     }
-  }, [router]);
+  }, [router, user]);
+
+  // Early return for workers
+  if (user?.role === 'worker') {
+    return null;
+  }
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ['jobs'],
@@ -41,7 +49,6 @@ export default function Jobs() {
   });
 
   // Only owners can fetch workers list
-  const user = AuthService.getCurrentUser();
   const { data: workers = [] } = useQuery({
     queryKey: ['workers'],
     queryFn: () => APIService.fetchWorkers(),
