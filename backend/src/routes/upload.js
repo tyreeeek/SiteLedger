@@ -21,7 +21,7 @@ const useLocalStorage = !isProduction || !process.env.SPACES_ACCESS_KEY;
 // Create local uploads directory if using local storage
 if (useLocalStorage) {
     const uploadsDir = path.join(__dirname, '../../uploads');
-    ['receipts', 'documents', 'profiles'].forEach(subdir => {
+    ['receipts', 'documents', 'profiles', 'company-logos'].forEach(subdir => {
         const dir = path.join(uploadsDir, subdir);
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
@@ -68,13 +68,13 @@ const upload = multer({
         if (!ALLOWED_MIMETYPES.includes(file.mimetype)) {
             return cb(new Error('Invalid file type. Allowed: JPEG, PNG, HEIC, PDF'));
         }
-        
+
         // Check extension (prevent extension spoofing)
         const ext = path.extname(file.originalname).toLowerCase();
         if (!ALLOWED_EXTENSIONS.includes(ext)) {
             return cb(new Error('Invalid file extension'));
         }
-        
+
         cb(null, true);
     }
 });
@@ -99,9 +99,9 @@ router.post('/receipt', upload.single('file'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'No file provided' });
         }
-        
+
         const fileName = sanitizeFilename(req.user.id, 'receipts', req.file.originalname);
-        
+
         if (useLocalStorage) {
             // Save to local filesystem
             const localPath = path.join(__dirname, '../../uploads', fileName);
@@ -110,12 +110,14 @@ router.post('/receipt', upload.single('file'), async (req, res) => {
                 fs.mkdirSync(dir, { recursive: true });
             }
             fs.writeFileSync(localPath, req.file.buffer);
-            // Always use production URL (no localhost in production-ready logs)
-            const fileURL = `https://api.siteledger.ai/uploads/${fileName}`;
+            // Dynamic URL for local development
+            const protocol = req.protocol;
+            const host = req.get('host');
+            const fileURL = `${protocol}://${host}/uploads/${fileName}`;
             console.log(`✅ Receipt saved locally: ${fileURL}`);
             return res.json({ url: fileURL });
         }
-        
+
         const params = {
             Bucket: BUCKET,
             Key: fileName,
@@ -125,11 +127,11 @@ router.post('/receipt', upload.single('file'), async (req, res) => {
             // Add cache control for CDN
             CacheControl: 'max-age=31536000' // 1 year cache
         };
-        
+
         await s3.upload(params).promise();
-        
+
         const fileURL = `${CDN_ENDPOINT}/${fileName}`;
-        
+
         res.json({ url: fileURL });
     } catch (error) {
         console.error('Upload receipt error:', error);
@@ -147,9 +149,9 @@ router.post('/document', upload.single('file'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'No file provided' });
         }
-        
+
         const fileName = sanitizeFilename(req.user.id, 'documents', req.file.originalname);
-        
+
         if (useLocalStorage) {
             const localPath = path.join(__dirname, '../../uploads', fileName);
             const dir = path.dirname(localPath);
@@ -157,12 +159,14 @@ router.post('/document', upload.single('file'), async (req, res) => {
                 fs.mkdirSync(dir, { recursive: true });
             }
             fs.writeFileSync(localPath, req.file.buffer);
-            // Always use production URL (no localhost in production-ready logs)
-            const fileURL = `https://api.siteledger.ai/uploads/${fileName}`;
+            // Dynamic URL for local development
+            const protocol = req.protocol;
+            const host = req.get('host');
+            const fileURL = `${protocol}://${host}/uploads/${fileName}`;
             console.log(`✅ Document saved locally: ${fileURL}`);
             return res.json({ url: fileURL });
         }
-        
+
         const params = {
             Bucket: BUCKET,
             Key: fileName,
@@ -171,11 +175,11 @@ router.post('/document', upload.single('file'), async (req, res) => {
             ACL: 'public-read',
             CacheControl: 'max-age=31536000'
         };
-        
+
         await s3.upload(params).promise();
-        
+
         const fileURL = `${CDN_ENDPOINT}/${fileName}`;
-        
+
         res.json({ url: fileURL });
     } catch (error) {
         console.error('Upload document error:', error);
@@ -193,12 +197,12 @@ router.post('/profile', upload.single('file'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'No file provided' });
         }
-        
+
         // Profile photos use user ID as filename (overwrites previous)
         const ext = path.extname(req.file.originalname).toLowerCase();
         const safeExt = ['.jpg', '.jpeg', '.png'].includes(ext) ? ext : '.jpg';
         const fileName = `profiles/${req.user.id}${safeExt}`;
-        
+
         if (useLocalStorage) {
             const localPath = path.join(__dirname, '../../uploads', fileName);
             const dir = path.dirname(localPath);
@@ -206,12 +210,14 @@ router.post('/profile', upload.single('file'), async (req, res) => {
                 fs.mkdirSync(dir, { recursive: true });
             }
             fs.writeFileSync(localPath, req.file.buffer);
-            // Always use production URL with cache busting (no localhost in production-ready logs)
-            const fileURL = `https://api.siteledger.ai/uploads/${fileName}?v=${Date.now()}`;
+            // Dynamic URL for local development
+            const protocol = req.protocol;
+            const host = req.get('host');
+            const fileURL = `${protocol}://${host}/uploads/${fileName}`;
             console.log(`✅ Profile photo saved locally: ${fileURL}`);
             return res.json({ url: fileURL });
         }
-        
+
         const params = {
             Bucket: BUCKET,
             Key: fileName,
@@ -220,15 +226,70 @@ router.post('/profile', upload.single('file'), async (req, res) => {
             ACL: 'public-read',
             CacheControl: 'max-age=86400' // 1 day cache for profiles (can change)
         };
-        
+
         await s3.upload(params).promise();
-        
+
         // Add timestamp to bust cache when profile updates
         const fileURL = `${CDN_ENDPOINT}/${fileName}?v=${Date.now()}`;
-        
+
         res.json({ url: fileURL });
     } catch (error) {
         console.error('Upload profile error:', error);
+        res.status(500).json({ error: 'Failed to upload file', details: error.message || error });
+    }
+});
+
+/**
+ * POST /api/upload/company-logo
+ * Upload a company logo (for owner branding)
+ */
+router.post('/company-logo', upload.single('file'), async (req, res) => {
+    console.log('POST /api/upload/company-logo called');
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file provided' });
+        }
+
+        // Only owners can upload company logos
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'Only owners can upload company logos' });
+        }
+
+        // Company logos use user ID as filename (overwrites previous)
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        const safeExt = ['.jpg', '.jpeg', '.png'].includes(ext) ? ext : '.jpg';
+        const fileName = `company-logos/${req.user.id}${safeExt}`;
+
+        if (useLocalStorage) {
+            const localPath = path.join(__dirname, '../../uploads', fileName);
+            const dir = path.dirname(localPath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(localPath, req.file.buffer);
+            const protocol = req.protocol;
+            const host = req.get('host');
+            const fileURL = `${protocol}://${host}/uploads/${fileName}`;
+            console.log(`✅ Company logo saved locally: ${fileURL}`);
+            return res.json({ url: fileURL });
+        }
+
+        const params = {
+            Bucket: BUCKET,
+            Key: fileName,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype,
+            ACL: 'public-read',
+            CacheControl: 'max-age=86400'
+        };
+
+        await s3.upload(params).promise();
+
+        const fileURL = `${CDN_ENDPOINT}/${fileName}?v=${Date.now()}`;
+
+        res.json({ url: fileURL });
+    } catch (error) {
+        console.error('Upload company logo error:', error);
         res.status(500).json({ error: 'Failed to upload file', details: error.message || error });
     }
 });
@@ -240,24 +301,24 @@ router.post('/profile', upload.single('file'), async (req, res) => {
 router.delete('/', async (req, res) => {
     try {
         const { url } = req.body;
-        
+
         if (!url) {
             return res.status(400).json({ error: 'No URL provided' });
         }
-        
+
         // Extract key from URL
         const key = url.replace(`${CDN_ENDPOINT}/`, '');
-        
+
         // Verify user owns this file (key should contain their user ID)
         if (!key.includes(req.user.id)) {
             return res.status(403).json({ error: 'Access denied' });
         }
-        
+
         await s3.deleteObject({
             Bucket: BUCKET,
             Key: key
         }).promise();
-        
+
         res.json({ message: 'File deleted' });
     } catch (error) {
         console.error('Delete file error:', error);

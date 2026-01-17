@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { 
-  Briefcase, 
-  Clock, 
-  Receipt, 
-  Users, 
-  DollarSign, 
+import {
+  Briefcase,
+  Clock,
+  Receipt,
+  Users,
+  DollarSign,
   TrendingUp,
   CheckCircle,
   ArrowRight,
@@ -49,9 +49,9 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <img 
-                src="/logo-actual.png" 
-                alt="SiteLedger Logo" 
+              <img
+                src="/siteledger-logo-light.png"
+                alt="SiteLedger Logo"
                 className="w-10 h-10 object-contain"
               />
               <span className="text-2xl font-bold text-gray-900">SiteLedger</span>
@@ -63,13 +63,13 @@ export default function LandingPage() {
               <a href="#download" className="text-gray-700 hover:text-blue-600 transition">Download</a>
             </nav>
             <div className="flex items-center gap-4">
-              <Link 
+              <Link
                 href="/auth/signin"
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
               >
                 Sign In
               </Link>
-              <button 
+              <button
                 className="md:hidden"
                 onClick={() => setMenuOpen(!menuOpen)}
               >
@@ -98,7 +98,7 @@ export default function LandingPage() {
             <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"></div>
           </div>
         </div>
-        
+
         <div className="relative max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-white">
@@ -114,14 +114,14 @@ export default function LandingPage() {
                 The all-in-one platform that helps contractors track jobs, manage teams, and maximize profits. Join 1,000+ contractors who've transformed their business.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <a 
+                <a
                   href="#download"
                   className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 rounded-xl hover:bg-gray-100 transition shadow-2xl text-lg font-bold"
                 >
                   <Download className="mr-2 w-5 h-5" />
                   Download Free
                 </a>
-                <a 
+                <a
                   href="#demo"
                   className="inline-flex items-center justify-center px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white rounded-xl hover:bg-white/20 transition text-lg font-semibold"
                 >
@@ -150,9 +150,9 @@ export default function LandingPage() {
             </div>
             <div className="relative">
               <div className="relative z-10">
-                <img 
-                  src="https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=800&q=80" 
-                  alt="Construction management dashboard" 
+                <img
+                  src="https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=800&q=80"
+                  alt="Construction management dashboard"
                   className="rounded-2xl shadow-2xl border-4 border-white/20"
                 />
                 {/* Floating stats cards */}
@@ -229,11 +229,10 @@ export default function LandingPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-blue-600 text-white shadow-lg scale-105'
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
-                }`}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${activeTab === tab.id
+                  ? 'bg-blue-600 text-white shadow-lg scale-105'
+                  : 'bg-white text-gray-700 hover:bg-gray-100'
+                  }`}
               >
                 <tab.icon className="w-5 h-5 inline mr-2" />
                 {tab.label}
@@ -254,8 +253,8 @@ export default function LandingPage() {
                   },
                   {
                     icon: Clock,
-                    title: 'Time Tracking',
-                    description: 'GPS-verified clock in/out with automatic timesheet generation and payroll calculations.',
+                    title: 'Geo fence Time Tracking',
+                    description: 'Verify worker locations with automatic geo-fencing. Know exactly when and where your crew clocks in.',
                     color: 'bg-green-500'
                   },
                   {
@@ -315,7 +314,7 @@ export default function LandingPage() {
                   </ul>
                 </div>
                 <div>
-                  <img 
+                  <img
                     src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&q=80"
                     alt="Job management interface"
                     className="rounded-2xl shadow-2xl"
@@ -327,7 +326,7 @@ export default function LandingPage() {
             {activeTab === 'tracking' && (
               <div className="grid lg:grid-cols-2 gap-12 items-center">
                 <div className="order-2 lg:order-1">
-                  <img 
+                  <img
                     src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=80"
                     alt="Time tracking on mobile"
                     className="rounded-2xl shadow-2xl"
@@ -338,7 +337,7 @@ export default function LandingPage() {
                   <ul className="space-y-4">
                     {[
                       'One-tap clock in/out from mobile',
-                      'GPS location verification',
+                      'Geo-fencing for job sites',
                       'Automatic break time calculation',
                       'Real-time hours and pay calculations',
                       'Export timesheets for payroll',
@@ -375,7 +374,7 @@ export default function LandingPage() {
                   </ul>
                 </div>
                 <div>
-                  <img 
+                  <img
                     src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80"
                     alt="AI analytics dashboard"
                     className="rounded-2xl shadow-2xl"
@@ -393,7 +392,7 @@ export default function LandingPage() {
           <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-3xl"></div>
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-overlay filter blur-3xl"></div>
         </div>
-        
+
         <div className="max-w-7xl mx-auto relative">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">Loved by Contractors</h2>
@@ -405,7 +404,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                quote: "SiteLedger saved me 15 hours a week on paperwork. I can finally focus on growing my business instead of drowning in spreadsheets.",
+                quote: `SiteLedger saved me 15 hours a week on paperwork. I can finally focus on growing my business instead of drowning in spreadsheets.`,
                 author: "Mike Rodriguez",
                 role: "General Contractor",
                 rating: 5,
@@ -480,8 +479,8 @@ export default function LandingPage() {
               <div className="relative group cursor-pointer">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl blur-2xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
                 <div className="relative aspect-video bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden">
-                  <img 
-                    src="https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=800&q=80" 
+                  <img
+                    src="https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=800&q=80"
                     alt="Demo preview"
                     className="w-full h-full object-cover"
                   />
@@ -523,10 +522,10 @@ export default function LandingPage() {
                 <div key={index} className="group">
                   <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-2xl transition-all duration-300">
                     <div className="aspect-[4/3] bg-gray-200">
-                      <img 
-                        src={screenshot.image} 
-                        alt={screenshot.title} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                      <img
+                        src={screenshot.image}
+                        alt={screenshot.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
@@ -549,7 +548,7 @@ export default function LandingPage() {
           <div className="absolute top-20 left-20 w-80 h-80 bg-blue-500 rounded-full filter blur-3xl"></div>
           <div className="absolute bottom-20 right-20 w-80 h-80 bg-purple-500 rounded-full filter blur-3xl"></div>
         </div>
-        
+
         <div className="max-w-7xl mx-auto relative">
           <div className="text-center mb-16">
             <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-lg font-bold mb-6 shadow-lg">
@@ -572,7 +571,7 @@ export default function LandingPage() {
                 </div>
                 <p className="text-blue-100 text-lg">For the first 6 months. Then just $29/month.</p>
               </div>
-              
+
               <div className="p-12">
                 <div className="grid md:grid-cols-2 gap-6 mb-8">
                   {[
@@ -641,7 +640,7 @@ export default function LandingPage() {
           <div className="absolute top-20 right-20 w-96 h-96 bg-purple-500 rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
           <div className="absolute bottom-20 left-20 w-96 h-96 bg-pink-500 rounded-full mix-blend-overlay filter blur-3xl animate-pulse animation-delay-2000"></div>
         </div>
-        
+
         <div className="max-w-7xl mx-auto relative">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
@@ -651,9 +650,9 @@ export default function LandingPage() {
               <p className="text-xl text-blue-100 mb-8 leading-relaxed">
                 Download SiteLedger now and start transforming your construction business. Available on iOS and web.
               </p>
-              
+
               <div className="space-y-6 mb-8">
-                <a 
+                <a
                   href="https://apps.apple.com/us/app/siteledger/id123456789"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -669,7 +668,7 @@ export default function LandingPage() {
                   <Download className="w-6 h-6 text-blue-200 group-hover:translate-x-2 transition-transform" />
                 </a>
 
-                <a 
+                <a
                   href="/auth/signin"
                   className="group flex items-center p-6 bg-white/10 backdrop-blur-lg border-2 border-white/20 rounded-2xl hover:bg-white/20 hover:border-white/40 transition-all duration-300"
                 >
@@ -702,9 +701,9 @@ export default function LandingPage() {
 
             <div className="relative">
               <div className="relative z-10">
-                <img 
-                  src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80" 
-                  alt="Worker using SiteLedger on phone" 
+                <img
+                  src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80"
+                  alt="Worker using SiteLedger on phone"
                   className="rounded-3xl shadow-2xl border-4 border-white/20"
                 />
                 <div className="absolute -top-6 -right-6 bg-white p-6 rounded-2xl shadow-2xl">
@@ -741,9 +740,9 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <img 
-                  src="/logo-actual.png" 
-                  alt="SiteLedger Logo" 
+                <img
+                  src="/siteledger-logo-light.png"
+                  alt="SiteLedger Logo"
                   className="w-8 h-8 object-contain"
                 />
                 <span className="text-xl font-bold text-white">SiteLedger</span>
@@ -775,7 +774,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-sm">
-            <p>&copy; 2026 SiteLedger. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} SiteLedger. All rights reserved.</p>
           </div>
         </div>
       </footer>

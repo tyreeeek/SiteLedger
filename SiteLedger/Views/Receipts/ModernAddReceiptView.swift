@@ -13,6 +13,7 @@ struct ModernAddReceiptView: View {
     @State private var selectedImage: UIImage?
     @State private var showingImagePicker = false
     @State private var showingCamera = false
+    @State private var showingScanner = false // NEW
     @State private var amount = ""
     @State private var vendor = ""
     @State private var date = Date()
@@ -133,13 +134,17 @@ struct ModernAddReceiptView: View {
                                             .foregroundColor(ModernDesign.Colors.textSecondary)
                                         
                                         HStack(spacing: ModernDesign.Spacing.md) {
+                                                .background(ModernDesign.Colors.primary.opacity(0.1))
+                                                .cornerRadius(ModernDesign.Radius.medium)
+                                            }
+                                            
                                             Button(action: {
                                                 HapticsManager.shared.light()
-                                                showingCamera = true
+                                                showingScanner = true
                                             }) {
                                                 HStack(spacing: ModernDesign.Spacing.xs) {
-                                                    Image(systemName: "camera")
-                                                    Text("Camera")
+                                                    Image(systemName: "doc.viewfinder")
+                                                    Text("Scan")
                                                 }
                                                 .font(ModernDesign.Typography.label)
                                                 .foregroundColor(ModernDesign.Colors.primary)
@@ -394,6 +399,9 @@ struct ModernAddReceiptView: View {
             }
             .sheet(isPresented: $showingCamera) {
                 ImagePicker(image: $selectedImage, sourceType: .camera)
+            }
+            .sheet(isPresented: $showingScanner) {
+                DocumentScannerView(image: $selectedImage)
             }
             .onChange(of: selectedImage) { _, newValue in
                 if let image = newValue {

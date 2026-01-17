@@ -13,8 +13,14 @@ struct Job: Identifiable, Codable {
     /// Name of the client/customer
     var clientName: String
     
-    /// Project address
+    /// Project address (full string for display/geocoding)
     var address: String
+    
+    /// Address components
+    var street: String?
+    var city: String?
+    var state: String?
+    var zip: String?
     
     /// Job site GPS coordinates for geo-fencing (optional)
     var latitude: Double?
@@ -60,6 +66,10 @@ struct Job: Identifiable, Codable {
         jobName: String,
         clientName: String,
         address: String,
+        street: String? = nil,
+        city: String? = nil,
+        state: String? = nil,
+        zip: String? = nil,
         latitude: Double? = nil,
         longitude: Double? = nil,
         geofenceEnabled: Bool? = nil,
@@ -78,6 +88,10 @@ struct Job: Identifiable, Codable {
         self.jobName = jobName
         self.clientName = clientName
         self.address = address
+        self.street = street
+        self.city = city
+        self.state = state
+        self.zip = zip
         self.latitude = latitude
         self.longitude = longitude
         self.geofenceEnabled = geofenceEnabled
@@ -127,6 +141,10 @@ struct Job: Identifiable, Codable {
         case jobName
         case clientName
         case address
+        case street
+        case city
+        case state
+        case zip
         case latitude
         case longitude
         case startDate
@@ -153,6 +171,10 @@ struct Job: Identifiable, Codable {
         self.jobName = try container.decode(String.self, forKey: .jobName)
         self.clientName = try container.decode(String.self, forKey: .clientName)
         self.address = try container.decode(String.self, forKey: .address)
+        self.street = try? container.decode(String.self, forKey: .street)
+        self.city = try? container.decode(String.self, forKey: .city)
+        self.state = try? container.decode(String.self, forKey: .state)
+        self.zip = try? container.decode(String.self, forKey: .zip)
         self.latitude = try? container.decode(Double.self, forKey: .latitude)
         self.longitude = try? container.decode(Double.self, forKey: .longitude)
         

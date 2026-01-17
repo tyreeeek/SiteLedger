@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AuthService from '@/lib/auth';
 import { Loader2, LogIn } from 'lucide-react';
+import { BRANDING } from '@/lib/branding';
 
 export default function SignIn() {
   const router = useRouter();
@@ -20,10 +21,10 @@ export default function SignIn() {
 
     try {
       const user = await AuthService.signIn(email, password);
-      
+
       // Give localStorage time to persist before navigation
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       // Force reload to ensure auth state is fresh
       if (user.role === 'owner') {
         window.location.href = '/dashboard';
@@ -42,9 +43,9 @@ export default function SignIn() {
         {/* Header */}
         <div className="text-center">
           <div className="flex items-center justify-center mb-4">
-            <img src="/siteledger-logo-light.png" alt="SiteLedger" className="h-24 w-24 rounded-2xl" />
+            <img src={BRANDING.LOGO_URL} alt={BRANDING.APP_NAME} className="h-24 w-24 rounded-2xl" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">SiteLedger</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">{BRANDING.APP_NAME}</h1>
           <p className="text-gray-600 dark:text-gray-400">Sign in to your account</p>
         </div>
 

@@ -9,7 +9,11 @@ struct EditJobView: View {
     
     @State private var jobName: String
     @State private var clientName: String
-    @State private var address: String
+    @State private var address: String // Kept for legacy/display
+    @State private var street: String
+    @State private var city: String
+    @State private var state: String
+    @State private var zip: String
     @State private var projectValue: String
     @State private var amountPaid: String
     @State private var startDate: Date
@@ -30,6 +34,10 @@ struct EditJobView: View {
         _jobName = State(initialValue: job.jobName)
         _clientName = State(initialValue: job.clientName)
         _address = State(initialValue: job.address)
+        _street = State(initialValue: job.street ?? "")
+        _city = State(initialValue: job.city ?? "")
+        _state = State(initialValue: job.state ?? "")
+        _zip = State(initialValue: job.zip ?? "")
         _projectValue = State(initialValue: String(format: "%.2f", job.projectValue))
         _amountPaid = State(initialValue: String(format: "%.2f", job.amountPaid))
         _startDate = State(initialValue: job.startDate)
@@ -77,10 +85,31 @@ struct EditJobView: View {
                                         icon: "person.fill"
                                     )
                                     
+                                    // Split Address Fields
                                     ModernTextField(
-                                        placeholder: "Address",
-                                        text: $address,
+                                        placeholder: "Street Address",
+                                        text: $street,
                                         icon: "location.fill"
+                                    )
+                                    
+                                    HStack(spacing: ModernDesign.Spacing.sm) {
+                                        ModernTextField(
+                                            placeholder: "City",
+                                            text: $city,
+                                            icon: "building.2.fill"
+                                        )
+                                        
+                                        ModernTextField(
+                                            placeholder: "State",
+                                            text: $state,
+                                            icon: "map.fill"
+                                        )
+                                    }
+                                    
+                                    ModernTextField(
+                                        placeholder: "Zip Code",
+                                        text: $zip,
+                                        icon: "number.square.fill"
                                     )
                                 }
                             }
@@ -399,7 +428,15 @@ struct EditJobView: View {
         var updatedJob = job
         updatedJob.jobName = jobName
         updatedJob.clientName = clientName
-        updatedJob.address = address
+        updatedJob.jobName = jobName
+        updatedJob.clientName = clientName
+        updatedJob.street = street
+        updatedJob.city = city
+        updatedJob.state = state
+        updatedJob.zip = zip
+        // Construct full address for display/backward compatibility
+        let components = [street, city, state, zip].filter { !$0.isEmpty }
+        updatedJob.address = components.isEmpty ? "" : components.joined(separator: ", ")
         updatedJob.projectValue = projectValueDouble
         updatedJob.amountPaid = amountPaidDouble
         updatedJob.startDate = startDate

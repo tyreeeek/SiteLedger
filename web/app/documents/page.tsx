@@ -147,7 +147,22 @@ export default function Documents() {
                   onClick={() => router.push(`/documents/${doc.id}`)}
                 >
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="flex-shrink-0">{getFileIcon(doc.fileType)}</div>
+                    {doc.fileType?.startsWith('image/') && doc.fileURL ? (
+                      <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200 dark:border-gray-600">
+                        <img
+                          src={doc.fileURL}
+                          alt={doc.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            // Fallback to icon
+                            e.currentTarget.parentElement!.innerHTML = '<svg class="w-8 h-8 text-green-600 m-auto mt-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex-shrink-0">{getFileIcon(doc.fileType)}</div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-gray-900 dark:text-white truncate">{doc.title || 'Untitled'}</h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{getFileTypeLabel(doc.fileType)}</p>

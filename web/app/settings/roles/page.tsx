@@ -164,7 +164,6 @@ export default function RolesAndPermissions() {
               </div>
               <div className="space-y-3 mb-6">
                 {[
-                  { key: 'canViewFinancials' as keyof WorkerPermissions, label: 'View Financials', desc: 'Can see project values and amounts paid' },
                   { key: 'canUploadReceipts' as keyof WorkerPermissions, label: 'Upload Receipts', desc: 'Can add and upload receipt images' },
                   { key: 'canApproveTimesheets' as keyof WorkerPermissions, label: 'Approve Timesheets', desc: 'Can approve or reject timesheet entries' },
                   { key: 'canSeeAIInsights' as keyof WorkerPermissions, label: 'See AI Insights', desc: 'Can view AI-generated insights' },

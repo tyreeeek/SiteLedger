@@ -5,12 +5,13 @@ import Providers from "@/components/providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "react-hot-toast";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { BRANDING } from '@/lib/branding';
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SiteLedger - Contractor Management Platform",
-  description: "Track jobs, receipts, timesheets, and documents with real-time profit calculations and AI-powered features.",
+  title: BRANDING.META_TITLE,
+  description: BRANDING.META_DESCRIPTION,
   icons: {
     icon: '/favicon.svg',
   },
@@ -28,7 +29,7 @@ export default function RootLayout({
           <Providers>
             {children}
           </Providers>
-          <Toaster 
+          <Toaster
             position="top-right"
             toastOptions={{
               duration: 3000,

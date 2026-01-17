@@ -60,31 +60,31 @@ export default function Jobs() {
   const getJobMetrics = (job: any) => {
     const jobTimesheets = timesheets.filter((ts: any) => ts.jobID === job.id);
     const jobReceipts = receipts.filter((r: any) => r.jobID === job.id);
-    
+
     const laborCost = jobTimesheets.reduce((sum: number, ts: any) => {
       const worker = workers.find((w: any) => w.id === ts.workerID);
       const hours = ts.hours || 0;
       const rate = worker?.hourlyRate || 0;
       return sum + (hours * rate);
     }, 0);
-    
+
     const receiptExpenses = jobReceipts.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
     const profit = job.projectValue - laborCost - receiptExpenses;
     const remainingBalance = job.projectValue - (job.amountPaid || 0);
-    
+
     return { laborCost, receiptExpenses, profit, remainingBalance };
   };
 
   const filteredJobs = jobs.filter((job: any) => {
     const matchesSearch = job.jobName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         job.clientName?.toLowerCase().includes(searchQuery.toLowerCase());
+      job.clientName?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
@@ -127,7 +127,7 @@ export default function Jobs() {
             <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">Jobs</h1>
             <p className="text-gray-600 mt-2">Manage your construction projects</p>
           </div>
-          <button 
+          <button
             onClick={() => router.push('/jobs/create')}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-lg"
           >
@@ -165,31 +165,33 @@ export default function Jobs() {
           </div>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-            <p className="text-sm text-gray-600">Total Jobs</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{jobs.length}</p>
+        {/* Stats Overview - Only for owners */}
+        {user?.role === 'owner' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+              <p className="text-sm text-gray-600">Total Jobs</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{jobs.length}</p>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+              <p className="text-sm text-gray-600">Active</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">
+                {jobs.filter((j: any) => j.status === 'active').length}
+              </p>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+              <p className="text-sm text-gray-600">Completed</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">
+                {jobs.filter((j: any) => j.status === 'completed').length}
+              </p>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+              <p className="text-sm text-gray-600">Total Value</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {formatCurrency(jobs.reduce((sum: number, j: any) => sum + (j.projectValue || 0), 0))}
+              </p>
+            </div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-            <p className="text-sm text-gray-600">Active</p>
-            <p className="text-2xl font-bold text-green-600 mt-1">
-              {jobs.filter((j: any) => j.status === 'active').length}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-            <p className="text-sm text-gray-600">Completed</p>
-            <p className="text-2xl font-bold text-blue-600 mt-1">
-              {jobs.filter((j: any) => j.status === 'completed').length}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-            <p className="text-sm text-gray-600">Total Value</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
-              {formatCurrency(jobs.reduce((sum: number, j: any) => sum + (j.projectValue || 0), 0))}
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* Jobs List */}
         {filteredJobs.length === 0 ? (
@@ -197,8 +199,8 @@ export default function Jobs() {
             <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No jobs found</h3>
             <p className="text-gray-600 mb-6">
-              {searchQuery || statusFilter !== 'all' 
-                ? 'Try adjusting your filters' 
+              {searchQuery || statusFilter !== 'all'
+                ? 'Try adjusting your filters'
                 : 'Create your first job to get started'}
             </p>
           </div>
@@ -221,7 +223,7 @@ export default function Jobs() {
                         </div>
                         {getStatusBadge(job.status)}
                       </div>
-                      
+
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Contract Value</p>
@@ -249,7 +251,7 @@ export default function Jobs() {
                           {job.address}
                         </div>
                       )}
-                      
+
                       {(job.startDate || job.endDate) && (
                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                           {job.startDate && (

@@ -244,6 +244,20 @@ class APIService {
     return this.request('POST', '/worker-payments', payment);
   }
 
+  // MARK: - Client Payments API
+
+  async fetchClientPayments(jobId: string): Promise<any[]> {
+    return this.request('GET', `/client-payments/job/${jobId}`);
+  }
+
+  async createClientPayment(payment: any): Promise<any> {
+    return this.request('POST', '/client-payments', payment);
+  }
+
+  async deleteClientPayment(id: string): Promise<void> {
+    return this.request('DELETE', `/client-payments/${id}`);
+  }
+
   // MARK: - Worker Job Assignments API
 
   async fetchWorkerJobAssignments(): Promise<any[]> {
@@ -277,7 +291,7 @@ class APIService {
     });
   }
 
-  async updateUserProfile(data: { name?: string; phone?: string; photoURL?: string }): Promise<any> {
+  async updateUserProfile(data: { name?: string; phone?: string; photoURL?: string; bankInfo?: any }): Promise<any> {
     return this.request('PUT', '/auth/profile', data);
   }
 
@@ -326,7 +340,7 @@ class APIService {
       } catch (error: any) {
         console.error(`Upload attempt ${attempt} failed:`, error);
         lastError = error;
-        
+
         if (attempt < maxRetries) {
           // Wait before retry (exponential backoff)
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt));

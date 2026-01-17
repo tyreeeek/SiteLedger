@@ -14,7 +14,7 @@ const initBrevoClient = () => {
     console.log('📧 Checking Brevo API configuration...');
     console.log('  Brevo API Key:', apiKey ? '***SET***' : 'NOT SET');
     console.log('  From email:', process.env.SMTP_USER || 'NOT SET');
-    
+
     if (apiKey) {
         console.log('✅ Email service configured: Brevo API');
         const apiInstance = new brevo.TransactionalEmailsApi();
@@ -29,7 +29,7 @@ const initBrevoClient = () => {
 
 const sendEmail = async (to, subject, htmlContent, textContent = null) => {
     const apiInstance = initBrevoClient();
-    
+
     // Use SMTP_FROM (custom domain) if set, fallback to SMTP_USER (Brevo relay)
     // Strip quotes and angle brackets from SMTP_FROM if present
     let fromEmail = process.env.SMTP_FROM;
@@ -41,7 +41,7 @@ const sendEmail = async (to, subject, htmlContent, textContent = null) => {
         fromEmail = process.env.SMTP_USER || 'siteledger@siteledger.ai';
     }
     const fromName = 'SiteLedger';
-    
+
     if (!apiInstance) {
         // Dev mode - log to console
         console.log('\n📧 ===== EMAIL (DEV MODE) =====');
@@ -54,11 +54,11 @@ const sendEmail = async (to, subject, htmlContent, textContent = null) => {
         console.log('================================\n');
         return { success: true, messageId: 'dev-' + Date.now() };
     }
-    
+
     console.log(`📧 Sending email via Brevo API to: ${to}`);
     console.log(`📧 Subject: ${subject}`);
     console.log(`📧 From: ${fromName} <${fromEmail}>`);
-    
+
     try {
         const sendSmtpEmail = new brevo.SendSmtpEmail();
         sendSmtpEmail.sender = { name: fromName, email: fromEmail };
@@ -67,7 +67,7 @@ const sendEmail = async (to, subject, htmlContent, textContent = null) => {
         sendSmtpEmail.subject = subject;
         sendSmtpEmail.htmlContent = htmlContent;
         sendSmtpEmail.textContent = textContent || htmlContent.replace(/<[^>]*>/g, '');
-        
+
         const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
         console.log(`✅ Email sent successfully via Brevo! Message ID: ${result.messageId}`);
         return { success: true, messageId: result.messageId };
@@ -141,7 +141,7 @@ const sendPasswordResetEmail = async (email, name, resetToken) => {
         </body>
         </html>
     `;
-    
+
     return await sendEmail(email, subject, htmlContent);
 };
 
@@ -226,7 +226,7 @@ const sendPasswordResetWebEmail = async (email, name, resetToken) => {
         </body>
         </html>
     `;
-    
+
     return await sendEmail(email, subject, htmlContent);
 };
 
@@ -235,7 +235,7 @@ const sendPasswordResetWebEmail = async (email, name, resetToken) => {
  */
 const sendWorkerInvite = async (workerEmail, workerName, ownerName, tempPassword) => {
     const subject = `Welcome to SiteLedger - You've been invited by ${ownerName}`;
-    
+
     const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -296,7 +296,7 @@ const sendWorkerInvite = async (workerEmail, workerName, ownerName, tempPassword
         </body>
         </html>
     `;
-    
+
     const textContent = `
 Hi ${workerName},
 
@@ -323,7 +323,7 @@ Download: https://apps.apple.com/app/siteledger
 
 Need help? Contact ${ownerName}
     `.trim();
-    
+
     return await sendEmail(workerEmail, subject, htmlContent, textContent);
 };
 
@@ -332,7 +332,7 @@ Need help? Contact ${ownerName}
  */
 const sendPasswordResetNotification = async (email, name, newPassword) => {
     const subject = 'Your SiteLedger Password Has Been Reset';
-    
+
     const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -367,7 +367,7 @@ const sendPasswordResetNotification = async (email, name, newPassword) => {
         </body>
         </html>
     `;
-    
+
     const textContent = `
 Hi ${name},
 
@@ -379,8 +379,68 @@ New Password: ${newPassword}
 
 You can change your password in the app settings.
     `.trim();
-    
+
     return await sendEmail(email, subject, htmlContent, textContent);
+};
+
+/**
+ * Send job assignment notification to worker
+ */
+const sendJobAssignmentNotification = async (workerEmail, workerName, jobName, jobAddress) => {
+    const subject = `New Job Assignment: ${jobName}`;
+
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                .job-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+                .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🎯 New Job Assignment</h1>
+                </div>
+                <div class="content">
+                    <h2>Hi ${workerName},</h2>
+                    <p>You've been assigned to a new job! Check the details below:</p>
+                    
+                    <div class="job-details">
+                        <h3>📋 Job Information</h3>
+                        <p><strong>Job Name:</strong> ${jobName}</p>
+                        <p><strong>Location:</strong> ${jobAddress || 'Address not provided'}</p>
+                    </div>
+                    
+                    <p>Open the SiteLedger app to view full job details, clock in when you arrive, and track your hours.</p>
+                    
+                    <div class="footer">
+                        <p style="color: #999; font-size: 12px;">This email was sent by SiteLedger</p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+
+    const textContent = `
+Hi ${workerName},
+
+You've been assigned to a new job!
+
+JOB INFORMATION:
+Job Name: ${jobName}
+Location: ${jobAddress || 'Address not provided'}
+
+Open the SiteLedger app to view full details and clock in when you arrive.
+    `.trim();
+
+    return await sendEmail(workerEmail, subject, htmlContent, textContent);
 };
 
 module.exports = {
@@ -388,6 +448,7 @@ module.exports = {
     sendPasswordResetEmail,
     sendPasswordResetWebEmail,
     sendWorkerInvite,
-    sendPasswordResetNotification
+    sendPasswordResetNotification,
+    sendJobAssignmentNotification
 };
 

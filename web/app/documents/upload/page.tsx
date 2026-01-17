@@ -37,20 +37,20 @@ export default function UploadDocument() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSelectedFile(file);
-      
+
       // Auto-detect file type - backend accepts: pdf, image, other
       const fileType = file.type;
       let detectedType: 'pdf' | 'image' | 'other' = 'other';
       if (fileType.includes('pdf')) detectedType = 'pdf';
       else if (fileType.includes('image')) detectedType = 'image';
-      
+
       setFormData({ ...formData, title: file.name, fileType: detectedType });
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedFile) {
       toast.error('Please select a file to upload');
       return;
@@ -66,46 +66,17 @@ export default function UploadDocument() {
         return;
       }
 
-      // Upload file to backend storage
-      const formDataUpload = new FormData();
-      formDataUpload.append('file', selectedFile);
-      
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        toast.error('Authentication required. Please sign in again.');
-        router.push('/auth/signin');
-        return;
-      }
-      
-      const apiBaseURL = process.env.NEXT_PUBLIC_API_URL || 'https://api.siteledger.ai';
-      
-      const uploadResponse = await fetch(`${apiBaseURL}/api/upload/document`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formDataUpload
-      });
-
-      console.log('Upload response status:', uploadResponse.status);
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Upload error:', errorData);
-        throw new Error(errorData.error || `Upload failed with status ${uploadResponse.status}`);
-      }
-
-      const { url: fileURL } = await uploadResponse.json();
-
+      // 1. Upload file using APIService
+      const fileURL = await APIService.uploadFile(selectedFile, 'document');
       console.log('File uploaded successfully, URL:', fileURL);
 
+      // 2. Create document record
       const documentData = {
         jobID: formData.jobID || null,
         title: formData.title,
         fileURL: fileURL,
         fileType: formData.fileType,
         notes: formData.notes || ''
-        // Backend automatically sets owner_id from auth token
       };
 
       console.log('Creating document record with data:', documentData);

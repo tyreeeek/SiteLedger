@@ -18,6 +18,15 @@ export default function AccountSettings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Bank Info State
+  const [bankInfo, setBankInfo] = useState({
+    bankName: '',
+    accountHolderName: '',
+    accountNumber: '',
+    routingNumber: '',
+    accountType: 'checking'
+  });
+
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
       router.push('/auth/signin');
@@ -28,15 +37,30 @@ export default function AccountSettings() {
 
   const loadUserData = async () => {
     try {
-      const user = AuthService.getCurrentUser();
-      if (user) {
-        setName(user.name || '');
-        setEmail(user.email || '');
-        setPhone((user as any).phone || '');
-        setAvatarUrl((user as any).avatar || '');
-      }
+      // Fetch fresh data from server to ensure profile picture and other fields are up to date
+      await AuthService.checkSession();
     } catch (error) {
-      // Silently fail - use defaults
+      console.error('Failed to refresh session:', error);
+    }
+
+    // Load from local storage (updated by checkSession)
+    const user = AuthService.getCurrentUser();
+    if (user) {
+      setName(user.name || '');
+      setEmail(user.email || '');
+      setPhone((user as any).phone || '');
+      // Ensure we're using the correct property for photo URL
+      setAvatarUrl((user as any).photoURL || (user as any).avatar || '');
+
+      if ((user as any).bankInfo) {
+        setBankInfo({
+          bankName: (user as any).bankInfo.bankName || '',
+          accountHolderName: (user as any).bankInfo.accountHolderName || '',
+          accountNumber: (user as any).bankInfo.accountNumber || '',
+          routingNumber: (user as any).bankInfo.routingNumber || '',
+          accountType: (user as any).bankInfo.accountType || 'checking'
+        });
+      }
     }
   };
 
@@ -61,7 +85,7 @@ export default function AccountSettings() {
           const response = await fetch(avatarUrl);
           const blob = await response.blob();
           const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-          
+
           // Upload to server
           finalAvatarUrl = await APIService.uploadFile(file, 'profile');
           toast.success('Avatar uploaded successfully!');
@@ -71,29 +95,21 @@ export default function AccountSettings() {
         }
       }
 
-      const updatedUser = await APIService.updateUserProfile({ 
-        name, 
-        phone, 
-        photoURL: finalAvatarUrl 
+      const updatedUser = await APIService.updateUserProfile({
+        name,
+        phone,
+        photoURL: finalAvatarUrl,
+        bankInfo
       });
-      
-      // Update local user data with backend response
-      const currentUser = AuthService.getCurrentUser();
-      if (currentUser && updatedUser) {
-        const updatedAuth = { 
-          ...currentUser, 
-          name: updatedUser.name || name,
-          phone: updatedUser.phone || phone,
-          photoURL: updatedUser.photoURL || finalAvatarUrl
-        };
-        localStorage.setItem('user', JSON.stringify(updatedAuth));
-      }
-      
+
+      // Force a fresh fetch from backend to ensure we have the latest data
+      await AuthService.checkSession();
+
       // Update state with new values
       setAvatarUrl(finalAvatarUrl);
-      
+
       toast.success('Profile updated successfully!');
-      
+
       // Force page reload to refresh all components showing user data
       setTimeout(() => {
         window.location.reload();
@@ -160,7 +176,7 @@ export default function AccountSettings() {
         {/* Profile Information */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Profile Information</h2>
-          
+
           {/* Avatar */}
           <div className="flex items-center gap-6 mb-6">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
@@ -245,7 +261,7 @@ export default function AccountSettings() {
             <Lock className="w-6 h-6 text-gray-700" />
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Change Password</h2>
           </div>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -302,7 +318,7 @@ export default function AccountSettings() {
             <Trash2 className="w-6 h-6 text-red-600" />
             <h2 className="text-xl font-bold text-red-900">Danger Zone</h2>
           </div>
-          
+
           <p className="text-sm text-red-800 mb-4">
             Once you delete your account, there is no going back. All your data will be permanently deleted.
           </p>

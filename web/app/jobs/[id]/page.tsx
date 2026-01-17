@@ -7,22 +7,32 @@ import AuthService from '@/lib/auth';
 import APIService from '@/lib/api';
 import { ArrowLeft, Users, Edit, Briefcase, CreditCard, DollarSign, TrendingUp, Receipt, Clock, FileText, Loader2, Sparkles } from 'lucide-react';
 
-type Tab = 'ai-insights' | 'receipts' | 'timesheets' | 'documents';
+type Tab = 'ai-insights' | 'payments' | 'receipts' | 'timesheets' | 'documents';
 
 export default function JobDetails() {
   const router = useRouter();
   const params = useParams();
   const jobId = params?.id as string;
-  
+
   const [activeTab, setActiveTab] = useState<Tab>('ai-insights');
   const [job, setJob] = useState<any>(null);
   const [receipts, setReceipts] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
   const [timesheets, setTimesheets] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [workers, setWorkers] = useState<any[]>([]);
   const [assignedWorkers, setAssignedWorkers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    amount: '',
+    method: 'check',
+    date: new Date().toISOString().split('T')[0],
+    reference: '',
+    notes: ''
+  });
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>([]);
   const [aiInsights, setAiInsights] = useState<any>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
@@ -46,9 +56,10 @@ export default function JobDetails() {
   const loadJobData = async () => {
     setIsLoading(true);
     try {
-      const [jobData, receiptsData, timesheetsData, documentsData, workersData] = await Promise.all([
+      const [jobData, receiptsData, paymentsData, timesheetsData, documentsData, workersData] = await Promise.all([
         APIService.fetchJobs().then(jobs => jobs.find((j: any) => j.id === jobId)),
         APIService.fetchReceipts(),
+        APIService.fetchClientPayments(jobId),
         APIService.fetchTimesheets(),
         APIService.fetchDocuments(),
         APIService.fetchWorkers()
@@ -56,13 +67,14 @@ export default function JobDetails() {
 
       setJob(jobData);
       setReceipts(receiptsData.filter((r: any) => r.jobID === jobId));
+      setPayments(paymentsData);
       setTimesheets(timesheetsData.filter((t: any) => t.jobID === jobId));
       setDocuments(documentsData.filter((d: any) => d.jobID === jobId));
       setWorkers(workersData);
-      
+
       // Get assigned workers from job data
       if (jobData && jobData.assignedWorkers) {
-        const assigned = workersData.filter((w: any) => 
+        const assigned = workersData.filter((w: any) =>
           jobData.assignedWorkers.includes(w.id)
         );
         setAssignedWorkers(assigned);
@@ -117,9 +129,9 @@ export default function JobDetails() {
         ...job,
         assignedWorkers: selectedWorkerIds
       };
-      
+
       await APIService.updateJob(jobId, updatedJob);
-      
+
       // Reload data
       await loadJobData();
       setShowAssignModal(false);
@@ -129,11 +141,53 @@ export default function JobDetails() {
   };
 
   const toggleWorkerSelection = (workerId: string) => {
-    setSelectedWorkerIds(prev => 
-      prev.includes(workerId) 
+    setSelectedWorkerIds(prev =>
+      prev.includes(workerId)
         ? prev.filter(id => id !== workerId)
         : [...prev, workerId]
     );
+  };
+
+  const handleRecordPayment = async () => {
+    if (!paymentForm.amount || !paymentForm.date) return;
+
+    setIsSubmittingPayment(true);
+    try {
+      await APIService.createClientPayment({
+        jobId,
+        amount: parseFloat(paymentForm.amount),
+        method: paymentForm.method,
+        date: paymentForm.date,
+        reference: paymentForm.reference,
+        notes: paymentForm.notes
+      });
+
+      // Reload all data to update financials and payment list
+      await loadJobData();
+      setShowPaymentModal(false);
+      setPaymentForm({
+        amount: '',
+        method: 'check',
+        date: new Date().toISOString().split('T')[0],
+        reference: '',
+        notes: ''
+      });
+    } catch (error) {
+      console.error('Failed to record payment:', error);
+    } finally {
+      setIsSubmittingPayment(false);
+    }
+  };
+
+  const handleDeletePayment = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this payment? This will adjust the balance due.')) return;
+
+    try {
+      await APIService.deleteClientPayment(id);
+      await loadJobData();
+    } catch (error) {
+      console.error('Failed to delete payment:', error);
+    }
   };
 
   return (
@@ -173,7 +227,7 @@ export default function JobDetails() {
               {job.status}
             </span>
           </div>
-          
+
           {job.location && (
             <div className="flex items-center gap-2 text-gray-300">
               <span className="text-sm">📍 {job.location}</span>
@@ -286,7 +340,7 @@ export default function JobDetails() {
               Assign Workers
             </button>
           </div>
-          
+
           {assignedWorkers.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {assignedWorkers.map((worker) => (
@@ -314,7 +368,7 @@ export default function JobDetails() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Assign Workers</h3>
-              
+
               <div className="space-y-2 mb-6">
                 {workers.map((worker) => (
                   <label
@@ -337,7 +391,7 @@ export default function JobDetails() {
                   </label>
                 ))}
               </div>
-              
+
               <div className="flex gap-3">
                 <button
                   onClick={() => {
@@ -364,11 +418,10 @@ export default function JobDetails() {
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveTab('ai-insights')}
-              className={`flex-1 py-4 px-6 font-medium transition ${
-                activeTab === 'ai-insights'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
+              className={`flex-1 py-4 px-6 font-medium transition ${activeTab === 'ai-insights'
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
             >
               <div className="flex items-center justify-center gap-2">
                 <Sparkles className="w-4 h-4" />
@@ -376,32 +429,38 @@ export default function JobDetails() {
               </div>
             </button>
             <button
+              onClick={() => setActiveTab('payments')}
+              className={`flex-1 py-4 px-6 font-medium transition ${activeTab === 'payments'
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+            >
+              Payments ({payments.length})
+            </button>
+            <button
               onClick={() => setActiveTab('receipts')}
-              className={`flex-1 py-4 px-6 font-medium transition ${
-                activeTab === 'receipts'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
+              className={`flex-1 py-4 px-6 font-medium transition ${activeTab === 'receipts'
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
             >
               Receipts ({receipts.length})
             </button>
             <button
               onClick={() => setActiveTab('timesheets')}
-              className={`flex-1 py-4 px-6 font-medium transition ${
-                activeTab === 'timesheets'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
+              className={`flex-1 py-4 px-6 font-medium transition ${activeTab === 'timesheets'
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
             >
               Timesheets ({timesheets.length})
             </button>
             <button
               onClick={() => setActiveTab('documents')}
-              className={`flex-1 py-4 px-6 font-medium transition ${
-                activeTab === 'documents'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
+              className={`flex-1 py-4 px-6 font-medium transition ${activeTab === 'documents'
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
             >
               Documents ({documents.length})
             </button>
@@ -440,7 +499,7 @@ export default function JobDetails() {
                     )}
                   </button>
                 </div>
-                
+
                 {aiInsights ? (
                   <div className="space-y-4">
                     {aiInsights.summary && (
@@ -483,13 +542,65 @@ export default function JobDetails() {
                     <p className="text-sm text-gray-500 dark:text-gray-500">Click "Generate Insights" to analyze this job with AI</p>
                   </div>
                 )}
-                
+
                 {job.notes && (
                   <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Job Notes</h4>
                     <p className="text-gray-600 dark:text-gray-400">{job.notes}</p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'payments' && (
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                  >
+                    <DollarSign className="w-4 h-4" />
+                    Record Payment
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {payments.length > 0 ? (
+                    payments.map((payment) => (
+                      <div
+                        key={payment.id}
+                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-green-100 rounded-full">
+                            <DollarSign className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">Payment Received</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {new Date(payment.date).toLocaleDateString()} • {payment.method}
+                              {payment.reference && ` • Ref: ${payment.reference}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-lg font-semibold text-green-600">
+                            +{formatCurrency(parseFloat(payment.amount))}
+                          </span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeletePayment(payment.id); }}
+                            className="text-red-500 hover:text-red-700 p-2"
+                            title="Delete Payment"
+                          >
+                            <ArrowLeft className="w-4 h-4 rotate-180" /> {/* Using rotate arrow as simplified trash icon substitute or just use text */}
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-center py-8">No payments recorded yet</p>
+                  )}
+                </div>
               </div>
             )}
 
@@ -587,6 +698,101 @@ export default function JobDetails() {
           </div>
         </div>
       </div>
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Record Client Payment</h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount *</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={paymentForm.amount}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                    className="w-full pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date *</label>
+                <input
+                  type="date"
+                  value={paymentForm.date}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, date: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Method *</label>
+                <select
+                  value={paymentForm.method}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, method: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="check">Check</option>
+                  <option value="cash">Cash</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="credit_card">Credit Card</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reference (Optional)</label>
+                <input
+                  type="text"
+                  value={paymentForm.reference}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, reference: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  placeholder="Check #, Transaction ID"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (Optional)</label>
+                <textarea
+                  value={paymentForm.notes}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRecordPayment}
+                disabled={isSubmittingPayment || !paymentForm.amount}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 flex justify-center items-center gap-2"
+              >
+                {isSubmittingPayment ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Recording...
+                  </>
+                ) : (
+                  'Record Payment'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

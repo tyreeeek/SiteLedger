@@ -79,13 +79,13 @@ class AuthService {
       );
 
       const { accessToken, user } = response.data;
-      
+
       // Save token to API service
       APIService.setAccessToken(accessToken);
-      
+
       // Save current user
       this.saveCurrentUser(user);
-      
+
       return user;
     } catch (error: any) {
       throw new Error(error.response?.data?.error || error.response?.data?.message || 'Sign in failed');
@@ -96,23 +96,36 @@ class AuthService {
     name: string,
     email: string,
     password: string,
-    role: string
-  ): Promise<User> {
+    role: string,
+    companyInfo?: {
+      companyName?: string;
+      addressStreet?: string;
+      addressCity?: string;
+      addressState?: string;
+      addressZip?: string;
+    }
+  ): Promise<{ user: User; accessToken: string }> {
     try {
       const response = await axios.post<{ accessToken: string; user: User }>(
         `${this.baseURL}/signup`,
-        { name, email, password, role }
+        { 
+          name, 
+          email, 
+          password, 
+          role,
+          ...(companyInfo || {})
+        }
       );
 
       const { accessToken, user } = response.data;
-      
+
       // Save token to API service
       APIService.setAccessToken(accessToken);
-      
+
       // Save current user
       this.saveCurrentUser(user);
-      
-      return user;
+
+      return { user, accessToken };
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Sign up failed');
     }
@@ -128,7 +141,7 @@ class AuthService {
       // Clear local data regardless of API response
       APIService.clearToken();
       this.clearCurrentUser();
-      
+
       // Redirect to sign in page
       if (typeof window !== 'undefined') {
         window.location.href = '/auth/signin';
@@ -153,13 +166,13 @@ class AuthService {
         '/auth/profile',
         updates
       );
-      
+
       // Update stored user
       if (this.currentUser) {
         this.currentUser = { ...this.currentUser, ...response };
         this.saveCurrentUser(this.currentUser);
       }
-      
+
       return response;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Profile update failed');
@@ -192,7 +205,7 @@ class AuthService {
           },
         }
       );
-      
+
       this.saveCurrentUser(response.data.user);
       return true;
     } catch (error) {
@@ -205,9 +218,9 @@ class AuthService {
   isAuthenticated(): boolean {
     // Always reload from storage to get latest state
     this.loadCurrentUser();
-  const hasToken = typeof window !== 'undefined' && localStorage.getItem('accessToken') !== null;
+    const hasToken = typeof window !== 'undefined' && localStorage.getItem('accessToken') !== null;
     const hasUser = this.currentUser !== null;
-    
+
     return hasToken && hasUser;
   }
 }

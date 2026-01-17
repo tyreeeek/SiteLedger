@@ -36,6 +36,7 @@ const preferencesRoutes = require('./routes/preferences');
 const permissionsRoutes = require('./routes/permissions');
 const exportRoutes = require('./routes/export');
 const supportRoutes = require('./routes/support');
+const notificationsRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -82,7 +83,7 @@ app.use(compression({
 
 // CORS configuration - strict in production
 const corsOptions = {
-    origin: isProduction 
+    origin: isProduction
         ? (process.env.CORS_ORIGIN || 'https://siteledger.ai').split(',').map(s => s.trim())
         : '*',
     credentials: true,
@@ -158,8 +159,8 @@ app.use((req, res, next) => {
 
 // Health check (no auth required, but don't expose internals)
 app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
+    res.json({
+        status: 'ok',
         timestamp: new Date().toISOString(),
         version: '1.0.0'
     });
@@ -185,6 +186,7 @@ app.use('/api/preferences', preferencesRoutes);
 app.use('/api/permissions', permissionsRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -200,11 +202,11 @@ app.use((err, req, res, next) => {
         path: req.path,
         method: req.method
     });
-    
+
     // Send safe response to client
     const statusCode = err.status || err.statusCode || 500;
     res.status(statusCode).json({
-        error: isProduction 
+        error: isProduction
             ? (statusCode === 500 ? 'Internal server error' : err.message)
             : err.message,
         ...(isProduction ? {} : { stack: err.stack })
@@ -247,12 +249,12 @@ server.listen(PORT, '0.0.0.0', () => {
 // Graceful shutdown handler
 const gracefulShutdown = () => {
     logger.info('📴 Shutting down gracefully...');
-    
+
     server.close(() => {
         logger.info('✅ HTTP server closed');
         process.exit(0);
     });
-    
+
     // Force shutdown after 10 seconds
     setTimeout(() => {
         logger.error('⚠️  Forcing shutdown after timeout');

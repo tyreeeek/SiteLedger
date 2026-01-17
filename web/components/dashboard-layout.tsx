@@ -24,7 +24,9 @@ import {
   Building,
   User,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { BRANDING } from '@/lib/branding';
+import NotificationsDropdown from './notifications-dropdown';
 
 const ownerNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -52,8 +54,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const user = AuthService.getCurrentUser();
-  
+  const [user, setUser] = useState(AuthService.getCurrentUser());
+
+  // Update user state when component mounts or pathname changes
+  useEffect(() => {
+    const currentUser = AuthService.getCurrentUser();
+    setUser(currentUser);
+  }, [pathname]); // Re-fetch when navigating
+
   // Determine which navigation to show based on user role
   const navigation = user?.role === 'owner' ? ownerNavigation : workerNavigation;
 
@@ -65,35 +73,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
         >
           {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
+        <NotificationsDropdown />
       </div>
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
-              <img src="/siteledger-logo-light.png" alt="SiteLedger" className="w-12 h-12 rounded-xl" />
+              <img 
+                src={user?.companyLogo || BRANDING.LOGO_URL} 
+                alt={user?.companyName || BRANDING.APP_NAME} 
+                className="w-12 h-12 rounded-xl object-cover" 
+              />
               <div className="flex-1">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  SiteLedger
+                  {user?.companyName || BRANDING.APP_NAME}
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
                   {user?.photoURL ? (
-                    <img 
-                      src={user.photoURL} 
-                      alt={user?.name || 'User'} 
+                    <img
+                      src={user.photoURL}
+                      alt={user?.name || 'User'}
                       className="w-6 h-6 rounded-full object-cover border-2 border-gray-300 dark:border-gray-600"
                     />
                   ) : (
@@ -117,11 +129,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   key={item.name}
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-[#007AFF] bg-opacity-10 text-[#007AFF] dark:bg-[#3b82f6] dark:bg-opacity-20 dark:text-[#3b82f6] font-medium'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                  className={`flex items-center px-4 py-3 rounded-lg transition-colors ${isActive
+                    ? 'bg-[#007AFF] bg-opacity-10 text-[#007AFF] dark:bg-[#3b82f6] dark:bg-opacity-20 dark:text-[#3b82f6] font-medium'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
                 >
                   <item.icon className="w-5 h-5 mr-3" />
                   {item.name}

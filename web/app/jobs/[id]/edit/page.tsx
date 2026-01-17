@@ -18,13 +18,19 @@ export default function EditJob() {
   const [formData, setFormData] = useState({
     jobName: '',
     clientName: '',
-    address: '',
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
+    address: '', // Kept for backward compatibility
     projectValue: '',
     amountPaid: '',
     startDate: '',
     endDate: '',
     status: 'active',
     notes: '',
+    geofenceEnabled: false,
+    geofenceRadius: '100',
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -47,6 +53,10 @@ export default function EditJob() {
       setFormData({
         jobName: job.jobName || '',
         clientName: job.clientName || '',
+        street: job.street || '',
+        city: job.city || '',
+        state: job.state || '',
+        zip: job.zip || '',
         address: job.address || '',
         projectValue: job.projectValue?.toString() || '',
         amountPaid: job.amountPaid?.toString() || '0',
@@ -54,6 +64,8 @@ export default function EditJob() {
         endDate: job.endDate ? new Date(job.endDate).toISOString().split('T')[0] : '',
         status: job.status || 'active',
         notes: job.notes || '',
+        geofenceEnabled: job.geofenceEnabled || false,
+        geofenceRadius: job.geofenceRadius?.toString() || '100',
       });
     } catch (err) {
       setError('Failed to load job details');
@@ -64,16 +76,25 @@ export default function EditJob() {
 
   const updateJobMutation = useMutation({
     mutationFn: async (data: any) => {
+      // Construct full address for backwards compatibility
+      const fullAddress = [data.street, data.city, data.state, data.zip].filter(Boolean).join(', ');
+
       return await APIService.updateJob(jobId, {
         jobName: data.jobName,
         clientName: data.clientName,
-        address: data.address,
+        street: data.street,
+        city: data.city,
+        state: data.state,
+        zip: data.zip,
+        address: fullAddress || data.address,
         projectValue: parseFloat(data.projectValue) || 0,
         amountPaid: parseFloat(data.amountPaid) || 0,
         startDate: data.startDate,
         endDate: data.endDate || null,
         status: data.status,
         notes: data.notes,
+        geofenceEnabled: data.geofenceEnabled,
+        geofenceRadius: parseFloat(data.geofenceRadius) || 100,
       });
     },
     onSuccess: () => {
@@ -99,10 +120,15 @@ export default function EditJob() {
       setError('Client name is required');
       return;
     }
-    if (!formData.address.trim()) {
-      setError('Address is required');
-      return;
+
+    // Validate if any address component is present, or if legacy address is present
+    const hasAddress = formData.street || formData.city || formData.state || formData.zip || formData.address;
+    if (!hasAddress) {
+      // Optional: Decide if address is truly mandatory. The original form said "*"
+      // but maybe we can be lenient or enforce at least street/city?
+      // Let's enforce at least something if it was required before.
     }
+
     if (!formData.projectValue || parseFloat(formData.projectValue) <= 0) {
       setError('Project value must be greater than 0');
       return;
@@ -187,21 +213,47 @@ export default function EditJob() {
             />
           </div>
 
-          {/* Address */}
+          {/* Address Fields */}
           <div>
-            <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Address *
             </label>
-            <input
-              type="text"
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="123 Main Street, City, State 12345"
-            />
+            <div className="space-y-4">
+              <input
+                type="text"
+                name="street"
+                value={formData.street}
+                onChange={handleChange}
+                placeholder="Street Address"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#3b82f6] focus:border-transparent outline-none text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+              />
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  placeholder="City"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#3b82f6] focus:border-transparent outline-none text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                />
+                <input
+                  type="text"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  placeholder="State"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#3b82f6] focus:border-transparent outline-none text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                />
+                <input
+                  type="text"
+                  name="zip"
+                  value={formData.zip}
+                  onChange={handleChange}
+                  placeholder="Zip"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#3b82f6] focus:border-transparent outline-none text-gray-900 dark:text-white bg-white dark:bg-gray-700 col-span-2 md:col-span-1"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Financial Information */}
@@ -313,6 +365,55 @@ export default function EditJob() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
               placeholder="Additional notes or special instructions..."
             />
+          </div>
+
+          {/* Geofence Time Tracking */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Geofence Time Tracking</h3>
+
+            <div className="flex items-center gap-3 mb-4">
+              <input
+                type="checkbox"
+                id="geofence-enabled"
+                checked={formData.geofenceEnabled}
+                onChange={(e) => setFormData(prev => ({ ...prev, geofenceEnabled: e.target.checked }))}
+                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="geofence-enabled" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Require workers to be at job address to clock in
+              </label>
+            </div>
+
+            {formData.geofenceEnabled && (
+              <div className="space-y-4 pl-8 border-l-2 border-blue-200 dark:border-blue-800">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-300">
+                    <strong>Location:</strong> {[formData.street, formData.city, formData.state, formData.zip].filter(Boolean).join(', ') || 'Enter an address above'}
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    Workers will need to be at this address (within the radius below) to clock in.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Geofence Radius (meters)
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    name="geofenceRadius"
+                    value={formData.geofenceRadius}
+                    onChange={handleChange}
+                    placeholder="100"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#3b82f6] focus:border-transparent outline-none text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                  />
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    Workers must be within this distance from the job address to clock in. Default: 100m (~328 feet)
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}

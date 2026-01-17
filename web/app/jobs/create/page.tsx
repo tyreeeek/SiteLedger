@@ -17,7 +17,10 @@ export default function CreateJob() {
     projectValue: '',
     amountPaid: '',
     status: 'active',
-    location: '',
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
     startDate: '',
     endDate: '',
     notes: '',
@@ -37,6 +40,14 @@ export default function CreateJob() {
         return;
       }
 
+      // Construct full address for display/fallback
+      const location = [
+        formData.street,
+        formData.city,
+        formData.state,
+        formData.zip
+      ].filter(Boolean).join(', ');
+
       const jobData = {
         ownerID: user.id,
         jobName: formData.jobName,
@@ -44,7 +55,12 @@ export default function CreateJob() {
         projectValue: parseFloat(formData.projectValue) || 0,
         amountPaid: parseFloat(formData.amountPaid) || 0,
         status: formData.status,
-        location: formData.location,
+        street: formData.street,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        location: location, // Kept for backward compatibility
+        address: location,  // Kept for backward compatibility
         startDate: formData.startDate || null,
         endDate: formData.endDate || null,
         notes: formData.notes,
@@ -162,18 +178,43 @@ export default function CreateJob() {
             </select>
           </div>
 
-          {/* Location */}
+          {/* Location Fields */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location
+              Address
             </label>
-            <input
-              type="text"
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              placeholder="e.g., 123 Main St, City, State"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
-            />
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={formData.street}
+                onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                placeholder="Street Address (e.g., 123 Main St)"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              />
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="City"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                />
+                <input
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  placeholder="State"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                />
+                <input
+                  type="text"
+                  value={formData.zip}
+                  onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                  placeholder="Zip Code"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white md:col-span-1 col-span-2"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Dates */}
@@ -223,7 +264,7 @@ export default function CreateJob() {
           {/* Geofence Time Tracking */}
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Geofence Time Tracking</h3>
-            
+
             <div className="flex items-center gap-3 mb-4">
               <input
                 type="checkbox"
@@ -241,13 +282,13 @@ export default function CreateJob() {
               <div className="space-y-4 pl-8 border-l-2 border-blue-200">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                   <p className="text-sm text-blue-800">
-                    <strong>Location:</strong> {formData.location || 'Enter an address above'}
+                    <strong>Location:</strong> {[formData.street, formData.city, formData.state, formData.zip].filter(Boolean).join(', ') || 'Enter an address above'}
                   </p>
                   <p className="text-xs text-blue-600 mt-1">
                     Workers will need to be at this address (within the radius below) to clock in.
                   </p>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Geofence Radius (meters)

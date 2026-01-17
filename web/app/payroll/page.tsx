@@ -64,17 +64,17 @@ export default function Payroll() {
       const payroll: WorkerPayroll[] = workersData.map(worker => {
         const workerTimesheets = timesheetsData.filter((t: any) => t.workerID === worker.id);
         const workerPayments = paymentsData.filter((p: any) => p.workerID === worker.id);
-        
+
         // Use effectiveHours or hours field
-        const hoursWorked = workerTimesheets.reduce((sum: number, t: any) => 
+        const hoursWorked = workerTimesheets.reduce((sum: number, t: any) =>
           sum + (t.effectiveHours || t.hours || 0), 0);
         const hourlyRate = worker.hourlyRate || 0;
         const totalOwed = hoursWorked * hourlyRate;
-        
+
         // Calculate total paid
-        const totalPaid = workerPayments.reduce((sum: number, p: any) => 
+        const totalPaid = workerPayments.reduce((sum: number, p: any) =>
           sum + (p.amount || 0), 0);
-        
+
         // Calculate remaining balance
         const remainingBalance = totalOwed - totalPaid;
 
@@ -256,7 +256,7 @@ export default function Payroll() {
         {/* Payroll Table */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[800px]">
               <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -421,6 +421,29 @@ export default function Payroll() {
                     <option value="paypal">PayPal</option>
                     <option value="other">Other</option>
                   </select>
+
+                  {/* Show Bank Details if Direct Deposit is selected */}
+                  {paymentForm.paymentMethod === 'direct_deposit' && (
+                    <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+                      <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
+                        <DollarSign className="w-4 h-4" />
+                        Worker's Banking Information
+                      </h4>
+                      {(selectedWorker as any).bankInfo && (selectedWorker as any).bankInfo.bankName ? (
+                        <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                          <p><span className="font-medium">Bank:</span> {(selectedWorker as any).bankInfo.bankName}</p>
+                          <p><span className="font-medium">Account Holder:</span> {(selectedWorker as any).bankInfo.accountHolderName}</p>
+                          <p><span className="font-medium">Routing #:</span> {(selectedWorker as any).bankInfo.routingNumber}</p>
+                          <p><span className="font-medium">Account #:</span> {(selectedWorker as any).bankInfo.accountNumber}</p>
+                          <p><span className="font-medium">Type:</span> {(selectedWorker as any).bankInfo.accountType}</p>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-orange-600 dark:text-orange-400">
+                          No banking information available for this worker.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -490,8 +513,8 @@ export default function Payroll() {
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">Payment History</h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{selectedWorker.workerName}</p>
                 </div>
-                <button 
-                  onClick={() => setShowHistoryModal(false)} 
+                <button
+                  onClick={() => setShowHistoryModal(false)}
                   className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                   title="Close"
                 >
@@ -524,8 +547,8 @@ export default function Payroll() {
                 <div className="space-y-3">
                   <h3 className="font-semibold text-gray-900 dark:text-white">Transactions ({workerHistory.length})</h3>
                   {workerHistory.map((payment: any, idx: number) => (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
                     >
                       <div className="flex items-start justify-between">

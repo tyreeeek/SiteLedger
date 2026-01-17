@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard-layout';
 import { ArrowLeft } from 'lucide-react';
+import { BRANDING } from '@/lib/branding';
 
 export default function TermsOfService() {
   const router = useRouter();
@@ -27,17 +28,17 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Acceptance of Terms</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              By accessing and using SiteLedger ("Service," "Platform," or "App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not use our Service.
+              By accessing and using {BRANDING.APP_NAME} ("Service," "Platform," or "App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not use our Service.
             </p>
             <p className="text-gray-700 leading-relaxed">
-              These Terms constitute a legally binding agreement between you ("User," "you," or "your") and SiteLedger, Inc. ("Company," "we," "us," or "our").
+              These Terms constitute a legally binding agreement between you ("User," "you," or "your") and {BRANDING.COMPANY_NAME} ("Company," "we," "us," or "our").
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Description of Service</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              SiteLedger is a contractor management platform that provides:
+              {BRANDING.APP_NAME} is a contractor management platform that provides:
             </p>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li>Job and project tracking</li>
@@ -52,10 +53,10 @@ export default function TermsOfService() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">3. User Accounts</h2>
-            
+
             <h3 className="text-xl font-semibold text-gray-900 mb-3">3.1 Account Creation</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              To use SiteLedger, you must create an account by providing accurate, complete, and current information. You are responsible for maintaining the confidentiality of your account credentials.
+              To use {BRANDING.APP_NAME}, you must create an account by providing accurate, complete, and current information. You are responsible for maintaining the confidentiality of your account credentials.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">3.2 Account Eligibility</h3>
@@ -76,10 +77,10 @@ export default function TermsOfService() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">4. Payment and Billing</h2>
-            
+
             <h3 className="text-xl font-semibold text-gray-900 mb-3">4.1 Subscription Fees</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              Access to SiteLedger requires a paid subscription. Pricing is available on our website and subject to change with 30 days' notice.
+              Access to {BRANDING.APP_NAME} requires a paid subscription. Pricing is available on our website and subject to change with 30 days' notice.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">4.2 Billing Cycle</h3>
@@ -105,10 +106,10 @@ export default function TermsOfService() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">5. User Content and Data</h2>
-            
+
             <h3 className="text-xl font-semibold text-gray-900 mb-3">5.1 Your Data</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              You retain ownership of all data, content, and information you upload to SiteLedger ("User Content"). By using our Service, you grant us a license to use, store, and process your User Content solely to provide our services.
+              You retain ownership of all data, content, and information you upload to {BRANDING.APP_NAME} ("User Content"). By using our Service, you grant us a license to use, store, and process your User Content solely to provide our services.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">5.2 Data Accuracy</h3>
@@ -143,7 +144,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Intellectual Property</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              SiteLedger and all related trademarks, logos, service marks, software, and content (excluding User Content) are owned by SiteLedger, Inc. and protected by copyright, trademark, and other intellectual property laws.
+              {BRANDING.APP_NAME} and all related trademarks, logos, service marks, software, and content (excluding User Content) are owned by {BRANDING.COMPANY_NAME} and protected by copyright, trademark, and other intellectual property laws.
             </p>
             <p className="text-gray-700 leading-relaxed">
               You may not copy, modify, distribute, or create derivative works without our express written permission.
@@ -153,7 +154,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">8. Third-Party Services</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              SiteLedger may integrate with third-party services (payment processors, AI providers, cloud storage). Your use of these services is governed by their respective terms and privacy policies.
+              {BRANDING.APP_NAME} may integrate with third-party services (payment processors, AI providers, cloud storage). Your use of these services is governed by their respective terms and privacy policies.
             </p>
             <p className="text-gray-700 leading-relaxed">
               We are not responsible for third-party services, their availability, security, or performance.
@@ -179,7 +180,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">10. Limitation of Liability</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              TO THE MAXIMUM EXTENT PERMITTED BY LAW, SITELEDGER SHALL NOT BE LIABLE FOR:
+              TO THE MAXIMUM EXTENT PERMITTED BY LAW, {BRANDING.COMPANY_NAME} SHALL NOT BE LIABLE FOR:
             </p>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li>Indirect, incidental, special, consequential, or punitive damages</li>
@@ -196,13 +197,13 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">11. Indemnification</h2>
             <p className="text-gray-700 leading-relaxed">
-              You agree to indemnify and hold harmless SiteLedger, its affiliates, officers, directors, employees, and agents from any claims, losses, liabilities, damages, costs, or expenses arising from your use of the Service, violation of these Terms, or infringement of any rights.
+              You agree to indemnify and hold harmless {BRANDING.COMPANY_NAME}, its affiliates, officers, directors, employees, and agents from any claims, losses, liabilities, damages, costs, or expenses arising from your use of the Service, violation of these Terms, or infringement of any rights.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">12. Dispute Resolution</h2>
-            
+
             <h3 className="text-xl font-semibold text-gray-900 mb-3">12.1 Governing Law</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
               These Terms are governed by the laws of [Your State/Country], without regard to conflict of law principles.
@@ -241,10 +242,10 @@ export default function TermsOfService() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">15. General Provisions</h2>
-            
+
             <h3 className="text-xl font-semibold text-gray-900 mb-3">15.1 Entire Agreement</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              These Terms, along with our Privacy Policy, constitute the entire agreement between you and SiteLedger.
+              These Terms, along with our Privacy Policy, constitute the entire agreement between you and {BRANDING.COMPANY_NAME}.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">15.2 Severability</h3>
@@ -266,26 +267,27 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">16. Service Provider</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              SiteLedger is powered by <strong>Z & N Global</strong>.
+              {BRANDING.APP_NAME} is powered by <strong>Z & N Global</strong>. All services, technology, and infrastructure are provided by Z & N Global.
             </p>
           </section>
 
-          <section className="mb-8 bg-yellow-50 border-l-4 border-yellow-600 p-6 rounded-r-lg">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">17. Limitation of Liability - Data Loss</h2>
+          <section className="mb-8 bg-red-50 border-l-4 border-red-600 p-6 rounded-r-lg">
+            <h2 className="text-2xl font-bold text-red-900 mb-4">17. Limitation of Liability - Data Loss</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              <strong>IMPORTANT NOTICE:</strong> Z & N Global and SiteLedger shall not be liable for any loss, corruption, unauthorized access, or deletion of user data.
+              <strong className="text-red-600">IMPORTANT NOTICE:</strong> Z & N Global and {BRANDING.COMPANY_NAME} shall have NO LIABILITY WHATSOEVER for any loss, corruption, unauthorized access, or deletion of user data.
             </p>
             <p className="text-gray-700 leading-relaxed mb-4">
-              Users acknowledge and agree that:
+              Users acknowledge and explicitly agree that:
             </p>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
-              <li>Data loss may occur due to technical failures, security breaches, or other unforeseen circumstances</li>
-              <li>Users are solely responsible for maintaining their own backups and data redundancy</li>
-              <li>The service providers bear NO liability for any financial losses, business interruption, or damages resulting from data loss</li>
-              <li>Uploaded documents, receipts, timesheets, and other data may be permanently lost without possibility of recovery</li>
+              <li>Data loss may occur due to technical failures, security breaches, server failures, or other unforeseen circumstances</li>
+              <li>Users are <strong>solely responsible</strong> for maintaining their own backups and data redundancy</li>
+              <li>Z & N Global and {BRANDING.COMPANY_NAME} bear <strong>ZERO LIABILITY</strong> for any financial losses, business interruption, lost profits, or damages resulting from data loss</li>
+              <li>Uploaded documents, receipts, timesheets, job data, and other content may be permanently lost without possibility of recovery</li>
+              <li>No compensation, refunds, or damages will be provided in the event of data loss</li>
             </ul>
-            <p className="text-gray-700 leading-relaxed mt-4">
-              <strong>By using this service, you explicitly acknowledge and accept that data loss may occur and that Z & N Global and SiteLedger bear no liability for such incidents.</strong>
+            <p className="text-gray-700 leading-relaxed mt-4 font-semibold">
+              <strong className="text-red-600">BY USING THIS SERVICE, YOU EXPLICITLY ACKNOWLEDGE, UNDERSTAND, AND ACCEPT THAT DATA LOSS MAY OCCUR AND THAT Z & N GLOBAL AND {BRANDING.COMPANY_NAME} BEAR ABSOLUTELY NO LIABILITY FOR SUCH INCIDENTS.</strong>
             </p>
           </section>
 
@@ -302,7 +304,7 @@ export default function TermsOfService() {
 
           <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mt-8">
             <p className="text-sm text-blue-800">
-              <strong>By using SiteLedger, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.</strong>
+              <strong>By using {BRANDING.APP_NAME}, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.</strong>
             </p>
           </div>
         </div>

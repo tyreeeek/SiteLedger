@@ -168,6 +168,15 @@ export interface User {
   workerPermissions?: WorkerPermissions;
   hasPassword?: boolean;  // False for Apple Sign-In users
   createdAt: Date;
+  // Company branding fields
+  companyName?: string;
+  companyLogo?: string;
+  addressStreet?: string;
+  addressCity?: string;
+  addressState?: string;
+  addressZip?: string;
+  companyPhone?: string;
+  companyEmail?: string;
 }
 
 /**

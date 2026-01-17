@@ -41,14 +41,14 @@ export default function Receipts() {
     );
   }
 
-  const filteredReceipts = receipts.filter((r: any) => 
+  const filteredReceipts = receipts.filter((r: any) =>
     r.vendor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     r.notes?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
     }).format(value);
@@ -78,7 +78,7 @@ export default function Receipts() {
             <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">Receipts</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">Track expenses and receipts</p>
           </div>
-          <button 
+          <button
             onClick={() => router.push('/receipts/create')}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-lg"
           >
@@ -151,22 +151,29 @@ export default function Receipts() {
                       <p className="font-bold text-red-600 dark:text-red-400">{formatCurrency(receipt.amount || 0)}</p>
                     </div>
                   </div>
-                  
+
                   {receipt.date && (
                     <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
                       <Calendar className="w-4 h-4" />
                       {new Date(receipt.date).toLocaleDateString()}
                     </div>
                   )}
-                  
+
                   {receipt.notes && (
                     <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{receipt.notes}</p>
                   )}
-                  
+
                   {receipt.imageURL && (
-                    <div className="mt-3 flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
-                      <FileText className="w-4 h-4" />
-                      Image attached
+                    <div className="mt-3 relative h-32 w-full bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                      <img
+                        src={receipt.imageURL}
+                        alt="Receipt"
+                        className="w-full h-full object-cover hover:scale-105 transition duration-300"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement?.classList.add('hidden');
+                        }}
+                      />
                     </div>
                   )}
                 </div>

@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import AuthService from '@/lib/auth';
 import DashboardLayout from '@/components/dashboard-layout';
 import toast from 'react-hot-toast';
-import { 
-  User, 
-  Settings as SettingsIcon, 
+import {
+  User,
+  Settings as SettingsIcon,
   ChevronRight,
   Brain,
   Bell,
@@ -50,13 +50,24 @@ export default function Settings() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (!AuthService.isAuthenticated()) {
-      router.push('/auth/signin');
-    } else {
+    const init = async () => {
+      if (!AuthService.isAuthenticated()) {
+        router.push('/auth/signin');
+        return;
+      }
+
+      try {
+        await AuthService.checkSession();
+      } catch (error) {
+        console.error('Failed to refresh session:', error);
+      }
+
       setIsAuthChecked(true);
       const currentUser = AuthService.getCurrentUser();
       setUser(currentUser);
-    }
+    };
+
+    init();
   }, [router]);
 
   const handleDeleteAccount = async () => {
@@ -437,7 +448,7 @@ export default function Settings() {
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Delete Account?</h2>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                   <p className="text-sm text-red-800 dark:text-red-300 font-semibold mb-2">

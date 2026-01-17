@@ -12,7 +12,10 @@ struct    // Geofence fields
     
     @State private var jobName = ""
     @State private var clientName = ""
-    @State private var address = ""
+    @State private var street = ""
+    @State private var city = ""
+    @State private var state = ""
+    @State private var zip = ""
     @State private var projectValue = ""
     @State private var amountPaid = ""
     @State private var startDate = Date()
@@ -71,10 +74,31 @@ struct    // Geofence fields
                                         icon: "person.fill"
                                     )
                                     
+                                    // Split Address Fields
                                     ModernTextField(
-                                        placeholder: "Address (optional)",
-                                        text: $address,
+                                        placeholder: "Street Address",
+                                        text: $street,
                                         icon: "location.fill"
+                                    )
+                                    
+                                    HStack(spacing: ModernDesign.Spacing.sm) {
+                                        ModernTextField(
+                                            placeholder: "City",
+                                            text: $city,
+                                            icon: "building.2.fill"
+                                        )
+                                        
+                                        ModernTextField(
+                                            placeholder: "State",
+                                            text: $state,
+                                            icon: "map.fill"
+                                        )
+                                    }
+                                    
+                                    ModernTextField(
+                                        placeholder: "Zip Code",
+                                        text: $zip,
+                                        icon: "number.square.fill"
                                     )
                                 }
                             }
@@ -196,9 +220,14 @@ struct    // Geofence fields
                                                     Text("Job Address")
                                                         .font(ModernDesign.Typography.labelSmall)
                                                         .foregroundColor(ModernDesign.Colors.textSecondary)
-                                                    Text(address.isEmpty ? "Enter an address above" : address)
+                                                    
+                                                    // Construct full address for display
+                                                    let components = [street, city, state, zip].filter { !$0.isEmpty }
+                                                    let fullAddress = components.isEmpty ? "Enter an address above" : components.joined(separator: ", ")
+                                                    
+                                                    Text(fullAddress)
                                                         .font(ModernDesign.Typography.body)
-                                                        .foregroundColor(address.isEmpty ? ModernDesign.Colors.textTertiary : ModernDesign.Colors.textPrimary)
+                                                        .foregroundColor(components.isEmpty ? ModernDesign.Colors.textTertiary : ModernDesign.Colors.textPrimary)
                                                 }
                                                 Spacer()
                                             }
@@ -362,9 +391,10 @@ struct    // Geofence fields
         
         // Validate geofence fields if enabled
         var geofenceRad: Double? = nil
+        let fullAddress = [street, city, state, zip].filter { !$0.isEmpty }.joined(separator: ", ")
         
         if geofenceEnabled {
-            guard !address.isEmpty else {
+            guard !fullAddress.isEmpty else {
                 HapticsManager.shared.error()
                 errorMessage = "Please enter a job address for geofence validation"
                 showError = true
@@ -391,7 +421,11 @@ struct    // Geofence fields
             ownerID: ownerID,
             jobName: jobName,
             clientName: clientName,
-            address: address,
+            address: fullAddress, // Kept for backward compatibility
+            street: street,
+            city: city,
+            state: state,
+            zip: zip,
             geofenceEnabled: geofenceEnabled ? true : nil,
             geofenceRadius: geofenceRad,
             startDate: startDate,
